@@ -28,7 +28,28 @@ app.get('/api/messages', (req, res) => {
 });
 
 app.post('/api/messages', (req, res) => {
-  res.status(501).json({ error: 'not implemented' });
+  const { text, device_name } = req.body;
+
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
+    return res.status(400).json({ error: 'text is required' });
+  }
+  if (text.length > 10000) {
+    return res.status(400).json({ error: 'text exceeds 10,000 characters' });
+  }
+  if (!device_name || typeof device_name !== 'string' || device_name.trim().length === 0) {
+    return res.status(400).json({ error: 'device_name is required' });
+  }
+  if (device_name.length > 50) {
+    return res.status(400).json({ error: 'device_name exceeds 50 characters' });
+  }
+
+  const stmt = db.prepare('INSERT INTO messages (text, device_name) VALUES (?, ?)');
+  const result = stmt.run(text.trim(), device_name.trim());
+
+  res.status(201).json({
+    id: result.lastInsertRowid,
+    created_at: new Date().toISOString()
+  });
 });
 
 app.delete('/api/messages/:id', (req, res) => {
