@@ -1,0 +1,13 @@
+{
+  "name": "messageAnywhere",
+  "version": "1.0.0",
+  "description": "Share text messages across all your devices on the same network",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "better-sqlite3": "^11.7.0"
+  }
+}
