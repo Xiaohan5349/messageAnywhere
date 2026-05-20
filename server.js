@@ -19,6 +19,22 @@ db.exec(`
 const app = express();
 app.use(express.json());
 
+// Message expiry cleanup: delete messages older than 7 days
+function cleanupExpired() {
+  const result = db.prepare(
+    "DELETE FROM messages WHERE created_at < datetime('now', '-7 days')"
+  ).run();
+  if (result.changes > 0) {
+    console.log(`Expired ${result.changes} message(s)`);
+  }
+}
+
+// Run on startup (catch up after server was off)
+cleanupExpired();
+
+// Then every hour
+setInterval(cleanupExpired, 60 * 60 * 1000);
+
 // Serve static files from public/
 app.use(express.static(path.join(__dirname, 'public')));
 
