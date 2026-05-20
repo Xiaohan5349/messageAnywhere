@@ -72,7 +72,19 @@ app.post('/api/messages', (req, res) => {
 });
 
 app.delete('/api/messages/:id', (req, res) => {
-  res.status(501).json({ error: 'not implemented' });
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'invalid id' });
+  }
+
+  const stmt = db.prepare('DELETE FROM messages WHERE id = ?');
+  const result = stmt.run(id);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'not found' });
+  }
+
+  res.status(204).send();
 });
 
 // Error handler
