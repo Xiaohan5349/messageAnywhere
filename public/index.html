@@ -58,9 +58,26 @@
       cursor: pointer;
       border: 1px solid transparent;
       transition: border-color 0.15s;
+      position: relative;
     }
     .message:hover { border-color: #334155; }
+    .message:hover .delete-btn { opacity: 1; }
     .message:active { background: #162032; }
+    .delete-btn {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.15); }
     .message-meta {
       display: flex;
       justify-content: space-between;
@@ -176,7 +193,8 @@
     .device-btn:focus-visible,
     .input-bar button:focus-visible,
     .btn-cancel:focus-visible,
-    .btn-save:focus-visible {
+    .btn-save:focus-visible,
+    .delete-btn:focus-visible {
       outline: 2px solid #3b82f6;
       outline-offset: 2px;
     }
@@ -289,8 +307,16 @@
         </div>
         <div class="message-text">${escapeHtml(msg.text)}</div>
         <div class="message-hint">📋 tap to copy</div>
+        <button class="delete-btn" type="button" title="Delete">✕</button>
       `;
-      div.addEventListener('click', () => copyMessage(div, msg.text));
+      div.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-btn')) return;
+        copyMessage(div, msg.text);
+      });
+      div.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteMessage(div, msg.id);
+      });
       return div;
     }
 
@@ -419,16 +445,11 @@
       if (e.key === 'Enter') sendMessage();
     });
 
-    // Delete message on double-click (optional discovery feature)
-    messageList.addEventListener('dblclick', async (e) => {
-      const msgEl = e.target.closest('.message');
-      if (!msgEl) return;
-      const id = parseInt(msgEl.dataset.id, 10);
-      if (!id) return;
+    async function deleteMessage(el, id) {
       try {
         const res = await fetch(API + '/' + id, { method: 'DELETE' });
         if (res.ok || res.status === 404) {
-          msgEl.remove();
+          el.remove();
           if (messageList.children.length === 0) {
             messageList.innerHTML = '<div class="empty-state">No messages yet. Type something below to get started.</div>';
           }
@@ -436,6 +457,14 @@
       } catch (e) {
         // Silent
       }
+    }
+
+    // Delete on double-click (fallback)
+    messageList.addEventListener('dblclick', (e) => {
+      const msgEl = e.target.closest('.message');
+      if (!msgEl) return;
+      const id = parseInt(msgEl.dataset.id, 10);
+      if (id) deleteMessage(msgEl, id);
     });
   </script>
 </body>
