@@ -17,7 +17,7 @@ $action = New-ScheduledTaskAction `
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel LeastPrivilege
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
 
 $settings = New-ScheduledTaskSettingsSet `
   -AllowStartIfOnBatteries `
