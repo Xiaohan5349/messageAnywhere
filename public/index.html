@@ -72,16 +72,6 @@
     .message-inner.swiping { transition: none; }
     .message:hover .message-inner { border-color: #334155; }
     .message:active .message-inner { background: #162032; }
-    .message-delete-label {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 500;
-      pointer-events: none;
-    }
     .message-meta {
       display: flex;
       justify-content: space-between;
@@ -312,7 +302,6 @@
           <div class="message-text">${escapeHtml(msg.text)}</div>
           <div class="message-hint">← swipe to delete</div>
         </div>
-        <div class="message-delete-label">Delete</div>
       `;
       div.addEventListener('click', () => copyMessage(div, msg.text));
       return div;
