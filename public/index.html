@@ -209,7 +209,219 @@
     </div>
   </div>
   <script>
-    // JS logic added in Task 8
+    const API = '/api/messages';
+    const POLL_INTERVAL = 3000;
+    const DEVICE_KEY = 'device_name';
+
+    // Device name
+    let deviceName = localStorage.getItem(DEVICE_KEY) || '';
+
+    function getDeviceName() {
+      if (!deviceName) {
+        const ua = navigator.userAgent;
+        if (/iPhone|iPad|iPod/.test(ua)) return 'iPhone';
+        if (/Android/.test(ua)) return /Tablet|Tab/.test(ua) ? 'Android Tablet' : 'Android Phone';
+        if (/Mac/.test(ua) && !/iPhone|iPad/.test(ua)) return 'Mac';
+        if (/Windows/.test(ua)) return 'Windows PC';
+        return 'Unknown Device';
+      }
+      return deviceName;
+    }
+
+    function updateDeviceBtn() {
+      document.getElementById('deviceBtn').textContent = getDeviceName();
+    }
+    updateDeviceBtn();
+
+    // Device name modal
+    const deviceModal = document.getElementById('deviceModal');
+    const deviceNameInput = document.getElementById('deviceNameInput');
+
+    document.getElementById('deviceBtn').addEventListener('click', () => {
+      deviceNameInput.value = getDeviceName();
+      deviceModal.classList.remove('hidden');
+      deviceNameInput.focus();
+      deviceNameInput.select();
+    });
+
+    document.getElementById('modalCancel').addEventListener('click', () => {
+      deviceModal.classList.add('hidden');
+    });
+
+    function saveDeviceName() {
+      const name = deviceNameInput.value.trim();
+      if (name) {
+        deviceName = name;
+        localStorage.setItem(DEVICE_KEY, name);
+        updateDeviceBtn();
+      }
+      deviceModal.classList.add('hidden');
+    }
+
+    document.getElementById('modalSave').addEventListener('click', saveDeviceName);
+    deviceNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveDeviceName();
+      if (e.key === 'Escape') deviceModal.classList.add('hidden');
+    });
+
+    // Messages
+    let lastId = 0;
+    const messageList = document.getElementById('messageList');
+
+    function relativeTime(iso) {
+      const now = Date.now();
+      const then = new Date(iso + 'Z').getTime();
+      const diff = Math.floor((now - then) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+      return Math.floor(diff / 86400) + ' days ago';
+    }
+
+    function createMessageEl(msg) {
+      const div = document.createElement('div');
+      div.className = 'message';
+      div.dataset.id = msg.id;
+      div.innerHTML = `
+        <div class="message-meta">
+          <span>${escapeHtml(msg.device_name)}</span>
+          <span>${relativeTime(msg.created_at)}</span>
+        </div>
+        <div class="message-text">${escapeHtml(msg.text)}</div>
+        <div class="message-hint">📋 tap to copy</div>
+      `;
+      div.addEventListener('click', () => copyMessage(div, msg.text));
+      return div;
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function copyMessage(el, text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          el.classList.add('copied');
+          el.querySelector('.message-hint').textContent = '✓ copied!';
+          setTimeout(() => {
+            el.classList.remove('copied');
+            el.querySelector('.message-hint').textContent = '📋 tap to copy';
+          }, 1000);
+        }).catch(() => {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    // Remove empty state if present
+    function clearEmptyState() {
+      const es = messageList.querySelector('.empty-state');
+      if (es) es.remove();
+    }
+
+    // Polling
+    async function poll() {
+      try {
+        let url = API;
+        if (lastId > 0) url += '?since=' + lastId;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.messages.length > 0) {
+          clearEmptyState();
+          for (const msg of data.messages) {
+            messageList.appendChild(createMessageEl(msg));
+            lastId = Math.max(lastId, msg.id);
+          }
+          messageList.scrollTop = messageList.scrollHeight;
+        }
+      } catch (e) {
+        // Silent retry on next interval
+      }
+    }
+
+    // Initial load
+    poll().then(() => {
+      // Auto-scroll to bottom on first load
+      messageList.scrollTop = messageList.scrollHeight;
+    });
+    setInterval(poll, POLL_INTERVAL);
+
+    // Send
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const errorBar = document.getElementById('errorBar');
+
+    function showError(msg) {
+      errorBar.textContent = msg;
+      errorBar.classList.add('visible');
+      setTimeout(() => errorBar.classList.remove('visible'), 4000);
+    }
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      sendBtn.disabled = true;
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, device_name: getDeviceName() })
+        });
+        if (res.ok) {
+          messageInput.value = '';
+          poll(); // Immediate poll to show the new message
+        } else {
+          const err = await res.json();
+          showError(err.error || 'Failed to send');
+        }
+      } catch (e) {
+        showError('Failed to send. Server may be offline.');
+      } finally {
+        sendBtn.disabled = false;
+        messageInput.focus();
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // Delete message on double-click (optional discovery feature)
+    messageList.addEventListener('dblclick', async (e) => {
+      const msgEl = e.target.closest('.message');
+      if (!msgEl) return;
+      const id = parseInt(msgEl.dataset.id, 10);
+      if (!id) return;
+      try {
+        const res = await fetch(API + '/' + id, { method: 'DELETE' });
+        if (res.ok || res.status === 404) {
+          msgEl.remove();
+          if (messageList.children.length === 0) {
+            messageList.innerHTML = '<div class="empty-state">No messages yet. Type something below to get started.</div>';
+          }
+        }
+      } catch (e) {
+        // Silent
+      }
+    });
   </script>
 </body>
 </html>
