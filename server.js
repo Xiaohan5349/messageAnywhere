@@ -22,9 +22,23 @@ app.use(express.json());
 // Serve static files from public/
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Placeholder API routes (filled in later tasks)
 app.get('/api/messages', (req, res) => {
-  res.json({ messages: [] });
+  const since = req.query.since ? parseInt(req.query.since, 10) : 0;
+
+  let messages;
+  if (since > 0) {
+    const stmt = db.prepare(
+      'SELECT id, text, device_name, created_at FROM messages WHERE id > ? ORDER BY id ASC LIMIT 200'
+    );
+    messages = stmt.all(since);
+  } else {
+    const stmt = db.prepare(
+      'SELECT id, text, device_name, created_at FROM messages ORDER BY id DESC LIMIT 200'
+    );
+    messages = stmt.all().reverse();
+  }
+
+  res.json({ messages });
 });
 
 app.post('/api/messages', (req, res) => {
