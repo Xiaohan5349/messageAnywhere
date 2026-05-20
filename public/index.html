@@ -52,32 +52,36 @@
       gap: 6px;
     }
     .message {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #ef4444;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .message-inner {
       padding: 10px 12px;
       background: #1e293b;
       border-radius: 8px;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: border-color 0.15s;
+      transition: transform 0.2s ease;
       position: relative;
     }
-    .message:hover { border-color: #334155; }
-    .message:hover .delete-btn { opacity: 1; }
-    .message:active { background: #162032; }
-    .delete-btn {
+    .message-inner.swiping { transition: none; }
+    .message:hover .message-inner { border-color: #334155; }
+    .message:active .message-inner { background: #162032; }
+    .message-delete-label {
       position: absolute;
-      top: 6px;
-      right: 8px;
-      background: none;
-      border: none;
-      color: #64748b;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 4px;
-      opacity: 0;
-      transition: opacity 0.15s;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      pointer-events: none;
     }
-    .delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.15); }
     .message-meta {
       display: flex;
       justify-content: space-between;
@@ -96,7 +100,7 @@
       color: #94a3b8;
       margin-top: 4px;
     }
-    .message.copied { border-color: #3b82f6; }
+    .message.copied .message-inner { border-color: #3b82f6; }
     .message.copied .message-hint { color: #22c55e; }
     .input-bar {
       display: flex;
@@ -193,8 +197,7 @@
     .device-btn:focus-visible,
     .input-bar button:focus-visible,
     .btn-cancel:focus-visible,
-    .btn-save:focus-visible,
-    .delete-btn:focus-visible {
+    .btn-save:focus-visible {
       outline: 2px solid #3b82f6;
       outline-offset: 2px;
     }
@@ -301,22 +304,17 @@
       div.className = 'message';
       div.dataset.id = msg.id;
       div.innerHTML = `
-        <div class="message-meta">
-          <span>${escapeHtml(msg.device_name)}</span>
-          <span>${relativeTime(msg.created_at)}</span>
+        <div class="message-inner">
+          <div class="message-meta">
+            <span>${escapeHtml(msg.device_name)}</span>
+            <span>${relativeTime(msg.created_at)}</span>
+          </div>
+          <div class="message-text">${escapeHtml(msg.text)}</div>
+          <div class="message-hint">← swipe to delete</div>
         </div>
-        <div class="message-text">${escapeHtml(msg.text)}</div>
-        <div class="message-hint">📋 tap to copy</div>
-        <button class="delete-btn" type="button" title="Delete">✕</button>
+        <div class="message-delete-label">Delete</div>
       `;
-      div.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-btn')) return;
-        copyMessage(div, msg.text);
-      });
-      div.querySelector('.delete-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteMessage(div, msg.id);
-      });
+      div.addEventListener('click', () => copyMessage(div, msg.text));
       return div;
     }
 
@@ -331,7 +329,7 @@
       el.querySelector('.message-hint').textContent = '✓ copied!';
       setTimeout(() => {
         el.classList.remove('copied');
-        el.querySelector('.message-hint').textContent = '📋 tap to copy';
+        el.querySelector('.message-hint').textContent = '← swipe to delete';
       }, 1000);
     }
 
@@ -459,12 +457,55 @@
       }
     }
 
-    // Delete on double-click (fallback)
-    messageList.addEventListener('dblclick', (e) => {
-      const msgEl = e.target.closest('.message');
-      if (!msgEl) return;
-      const id = parseInt(msgEl.dataset.id, 10);
-      if (id) deleteMessage(msgEl, id);
+    // Swipe to delete
+    let swipeTarget = null;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeDeltaX = 0;
+    let swiping = false;
+
+    messageList.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { swipeTarget = null; return; }
+      swipeTarget = e.target.closest('.message');
+      if (!swipeTarget) return;
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+      swipeDeltaX = 0;
+      swiping = false;
+    }, { passive: true });
+
+    messageList.addEventListener('touchmove', (e) => {
+      if (!swipeTarget) return;
+      const dx = e.touches[0].clientX - swipeStartX;
+      const dy = e.touches[0].clientY - swipeStartY;
+      if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
+        swiping = true;
+      }
+      if (!swiping) return;
+      e.preventDefault();
+      swipeDeltaX = Math.max(-120, Math.min(0, dx));
+      const inner = swipeTarget.querySelector('.message-inner');
+      if (inner) {
+        inner.classList.add('swiping');
+        inner.style.transform = `translateX(${swipeDeltaX}px)`;
+      }
+    }, { passive: false });
+
+    messageList.addEventListener('touchend', () => {
+      if (!swipeTarget) return;
+      const inner = swipeTarget.querySelector('.message-inner');
+      if (inner) {
+        inner.classList.remove('swiping');
+        inner.style.transition = 'transform 0.2s ease';
+        if (swipeDeltaX < -80) {
+          inner.style.transform = 'translateX(-120%)';
+          const id = parseInt(swipeTarget.dataset.id, 10);
+          if (id) deleteMessage(swipeTarget, id);
+        } else {
+          inner.style.transform = 'translateX(0)';
+        }
+      }
+      swipeTarget = null;
     });
   </script>
 </body>
