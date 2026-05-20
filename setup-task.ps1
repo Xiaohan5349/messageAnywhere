@@ -3,16 +3,17 @@ param(
   [int]$Port = 3000,
 
   [Parameter(Mandatory=$true)]
+  [ValidateScript({Test-Path (Join-Path $_ "server.js")})]
   [string]$ProjectPath
 )
 
 $taskName = "MessageAnywhere"
-$nodePath = (Get-Command node).Source
+$nodePath = (Get-Command node -ErrorAction Stop).Source
 
 $action = New-ScheduledTaskAction `
-  -Execute "cmd.exe" `
+  -Execute "powershell.exe" `
   -WorkingDirectory $ProjectPath `
-  -Argument "/c `"set PORT=$Port && `"`"$nodePath`"`" server.js`""
+  -Argument "-NoProfile -WindowStyle Hidden -Command `$env:PORT = $Port; & `"$nodePath`" server.js"
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 
