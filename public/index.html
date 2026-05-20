@@ -300,15 +300,19 @@
       return d.innerHTML;
     }
 
+    function showCopied(el) {
+      el.classList.add('copied');
+      el.querySelector('.message-hint').textContent = '✓ copied!';
+      setTimeout(() => {
+        el.classList.remove('copied');
+        el.querySelector('.message-hint').textContent = '📋 tap to copy';
+      }, 1000);
+    }
+
     function copyMessage(el, text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
-          el.classList.add('copied');
-          el.querySelector('.message-hint').textContent = '✓ copied!';
-          setTimeout(() => {
-            el.classList.remove('copied');
-            el.querySelector('.message-hint').textContent = '📋 tap to copy';
-          }, 1000);
+          showCopied(el);
         }).catch(() => {
           fallbackCopy(el, text);
         });
@@ -318,20 +322,19 @@
     }
 
     function fallbackCopy(el, text) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      el.classList.add('copied');
-      el.querySelector('.message-hint').textContent = '✓ copied!';
-      setTimeout(() => {
-        el.classList.remove('copied');
-        el.querySelector('.message-hint').textContent = '📋 tap to copy';
-      }, 1000);
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) showCopied(el);
+      } catch (e) {
+        // Clipboard unavailable
+      }
     }
 
     // Remove empty state if present
@@ -341,7 +344,11 @@
     }
 
     // Polling
+    let polling = false;
+
     async function poll() {
+      if (polling) return;
+      polling = true;
       try {
         let url = API;
         if (lastId > 0) url += '?since=' + lastId;
@@ -358,6 +365,8 @@
         }
       } catch (e) {
         // Silent retry on next interval
+      } finally {
+        polling = false;
       }
     }
 
