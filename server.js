@@ -21,11 +21,15 @@ app.use(express.json());
 
 // Message expiry cleanup: delete messages older than 7 days
 function cleanupExpired() {
-  const result = db.prepare(
-    "DELETE FROM messages WHERE created_at < datetime('now', '-7 days')"
-  ).run();
-  if (result.changes > 0) {
-    console.log(`Expired ${result.changes} message(s)`);
+  try {
+    const result = db.prepare(
+      "DELETE FROM messages WHERE created_at < datetime('now', '-7 days')"
+    ).run();
+    if (result.changes > 0) {
+      console.log(`Expired ${result.changes} message(s)`);
+    }
+  } catch (err) {
+    console.error('cleanupExpired failed:', err.message);
   }
 }
 
