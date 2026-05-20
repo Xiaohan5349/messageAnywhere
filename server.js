@@ -28,6 +28,10 @@ app.get('/api/messages', (req, res) => {
 });
 
 app.post('/api/messages', (req, res) => {
+  if (!req.body) {
+    return res.status(400).json({ error: 'request body required' });
+  }
+
   const { text, device_name } = req.body;
 
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
@@ -43,12 +47,13 @@ app.post('/api/messages', (req, res) => {
     return res.status(400).json({ error: 'device_name exceeds 50 characters' });
   }
 
-  const stmt = db.prepare('INSERT INTO messages (text, device_name) VALUES (?, ?)');
-  const result = stmt.run(text.trim(), device_name.trim());
+  const now = new Date().toISOString();
+  const stmt = db.prepare('INSERT INTO messages (text, device_name, created_at) VALUES (?, ?, ?)');
+  const result = stmt.run(text.trim(), device_name.trim(), now);
 
   res.status(201).json({
     id: result.lastInsertRowid,
-    created_at: new Date().toISOString()
+    created_at: now
   });
 });
 
