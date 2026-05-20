@@ -270,7 +270,7 @@
 
     function relativeTime(iso) {
       const now = Date.now();
-      const then = new Date(iso + 'Z').getTime();
+      const then = new Date(iso).getTime();
       const diff = Math.floor((now - then) / 1000);
       if (diff < 60) return 'just now';
       if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
@@ -310,14 +310,14 @@
             el.querySelector('.message-hint').textContent = '📋 tap to copy';
           }, 1000);
         }).catch(() => {
-          fallbackCopy(text);
+          fallbackCopy(el, text);
         });
       } else {
-        fallbackCopy(text);
+        fallbackCopy(el, text);
       }
     }
 
-    function fallbackCopy(text) {
+    function fallbackCopy(el, text) {
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -326,6 +326,12 @@
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
+      el.classList.add('copied');
+      el.querySelector('.message-hint').textContent = '✓ copied!';
+      setTimeout(() => {
+        el.classList.remove('copied');
+        el.querySelector('.message-hint').textContent = '📋 tap to copy';
+      }, 1000);
     }
 
     // Remove empty state if present
