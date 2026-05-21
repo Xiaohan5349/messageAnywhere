@@ -11,9 +11,9 @@ $taskName = "MessageAnywhere"
 $nodePath = (Get-Command node -ErrorAction Stop).Source
 
 $action = New-ScheduledTaskAction `
-  -Execute "powershell.exe" `
+  -Execute $nodePath `
   -WorkingDirectory $ProjectPath `
-  -Argument "-NoProfile -WindowStyle Hidden -Command `$env:PORT = $Port; & `"$nodePath`" server.js"
+  -Argument "server.js"
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 
