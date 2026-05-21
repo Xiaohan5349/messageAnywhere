@@ -11,9 +11,9 @@ $taskName = "MessageAnywhere"
 $nodePath = (Get-Command node -ErrorAction Stop).Source
 
 $action = New-ScheduledTaskAction `
-  -Execute $nodePath `
+  -Execute "wscript.exe" `
   -WorkingDirectory $ProjectPath `
-  -Argument "server.js"
+  -Argument "launch.vbs"
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn
 
