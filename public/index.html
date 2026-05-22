@@ -567,6 +567,13 @@
       }
     }, { passive: false });
 
+    messageList.addEventListener('contextmenu', (e) => {
+      const msgEl = e.target.closest('.message');
+      if (!msgEl) return;
+      e.preventDefault();
+      enterEditMode(msgEl);
+    });
+
     messageList.addEventListener('touchend', () => {
       if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
       if (!swipeTarget) return;
