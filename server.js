@@ -91,6 +91,35 @@ app.post('/api/messages', (req, res) => {
   });
 });
 
+app.put('/api/messages/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'invalid id' });
+  }
+
+  if (!req.body) {
+    return res.status(400).json({ error: 'request body required' });
+  }
+
+  const { text } = req.body;
+
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
+    return res.status(400).json({ error: 'text is required' });
+  }
+  if (text.length > 10000) {
+    return res.status(400).json({ error: 'text exceeds 10,000 characters' });
+  }
+
+  const stmt = db.prepare('UPDATE messages SET text = ? WHERE id = ?');
+  const result = stmt.run(text.trim(), id);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'not found' });
+  }
+
+  res.json({ id, text: text.trim() });
+});
+
 app.delete('/api/messages/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
