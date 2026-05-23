@@ -569,9 +569,17 @@
 
     messageList.addEventListener('contextmenu', (e) => {
       const msgEl = e.target.closest('.message');
-      if (!msgEl) return;
+      if (!msgEl || msgEl._editing) return;
       e.preventDefault();
       enterEditMode(msgEl);
+    });
+
+    messageList.addEventListener('dblclick', (e) => {
+      const msgEl = e.target.closest('.message');
+      if (!msgEl || msgEl._editing) return;
+      msgEl._editing = true;
+      const id = parseInt(msgEl.dataset.id, 10);
+      if (id) deleteMessage(msgEl, id);
     });
 
     messageList.addEventListener('touchend', () => {
