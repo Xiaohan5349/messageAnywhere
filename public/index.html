@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>MessageAnywhere</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0f1a;
-      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #fff;
       min-height: 100vh;
       min-height: 100dvh;
       display: flex;
       justify-content: center;
+      -webkit-font-smoothing: antialiased;
     }
     .app {
       width: 100%;
@@ -22,217 +23,302 @@
       height: 100dvh;
       display: flex;
       flex-direction: column;
-      background: #0f172a;
+      background: #000;
     }
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      border-bottom: 1px solid #1e293b;
+      padding: 16px;
+      padding-top: max(16px, env(safe-area-inset-top));
       flex-shrink: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid rgba(255,255,255,0.1);
     }
-    .header h1 { font-size: 16px; font-weight: 600; }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
     .device-btn {
-      background: none;
-      border: 1px solid #334155;
-      color: #94a3b8;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #0a84ff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
     }
-    .device-btn:hover { border-color: #64748b; color: #e2e8f0; }
+    .device-btn:active { background: rgba(255,255,255,0.15); }
+    .search-bar {
+      padding: 8px 16px;
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 8px 12px;
+      background: #1c1c1e;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    .search-bar input::placeholder { color: #636366; }
+    .search-clear {
+      background: none;
+      border: none;
+      color: #0a84ff;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      padding: 4px 8px;
+    }
     .message-list {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
+      padding: 8px 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
     .message {
       position: relative;
       overflow: hidden;
-      border-radius: 8px;
-      background: #ef4444;
+      border-radius: 16px;
+      background: #ff453a;
       touch-action: pan-y;
       user-select: none;
       -webkit-user-select: none;
     }
     .message-inner {
-      padding: 10px 12px;
-      background: #1e293b;
-      border-radius: 8px;
+      padding: 12px 14px;
+      background: #1c1c1e;
       cursor: pointer;
-      border: 1px solid transparent;
       transition: transform 0.2s ease;
       position: relative;
     }
     .message-inner.swiping { transition: none; }
-    .message:hover .message-inner { border-color: #334155; }
-    .message:active .message-inner { background: #162032; }
+    .message:active .message-inner { background: #2c2c2e; }
     .message-meta {
       display: flex;
       justify-content: space-between;
       font-size: 11px;
-      color: #94a3b8;
-      margin-bottom: 3px;
+      color: #8e8e93;
+      margin-bottom: 4px;
+      font-weight: 500;
     }
     .message-text {
       font-size: 16px;
-      color: #e2e8f0;
+      color: #fff;
       word-break: break-word;
       white-space: pre-wrap;
+      line-height: 1.4;
+    }
+    .message-preview {
+      max-height: 200px;
+      overflow: hidden;
+      position: relative;
+    }
+    .message-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, #1c1c1e);
+    }
+    .expand-btn {
+      display: block;
+      background: none;
+      border: none;
+      color: #0a84ff;
+      font-size: 13px;
+      padding: 4px 0 0;
+      cursor: pointer;
+      font-family: inherit;
     }
     .message-hint {
-      font-size: 10px;
-      color: #94a3b8;
+      font-size: 11px;
+      color: #8e8e93;
       margin-top: 4px;
     }
-    .message.copied .message-inner { border-color: #3b82f6; }
-    .message.copied .message-hint { color: #22c55e; }
+    .message.copied .message-hint { color: #30d158; }
     .edit-textarea {
       width: 100%;
-      padding: 6px 8px;
-      background: #0f172a;
-      border: 1px solid #3b82f6;
-      border-radius: 6px;
-      color: #e2e8f0;
-      font-size: 14px;
+      padding: 8px 10px;
+      background: #2c2c2e;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
       font-family: inherit;
       resize: vertical;
       outline: none;
+      line-height: 1.4;
     }
     .edit-actions {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       justify-content: flex-end;
-      margin-top: 6px;
+      margin-top: 8px;
     }
     .edit-actions button {
-      padding: 4px 12px;
-      border-radius: 5px;
-      font-size: 12px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
       cursor: pointer;
       border: none;
+      font-weight: 500;
+      font-family: inherit;
     }
-    .btn-edit-save { background: #3b82f6; color: #fff; }
-    .btn-edit-cancel { background: #334155; color: #e2e8f0; }
+    .btn-edit-save { background: #0a84ff; color: #fff; }
+    .btn-edit-cancel { background: rgba(255,255,255,0.1); color: #fff; }
     .input-bar {
       display: flex;
       gap: 8px;
-      padding: 12px;
-      border-top: 1px solid #1e293b;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
       flex-shrink: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 0.5px solid rgba(255,255,255,0.1);
     }
     .input-bar input {
       flex: 1;
-      padding: 8px 12px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      color: #e2e8f0;
-      font-size: 14px;
+      padding: 10px 16px;
+      background: #1c1c1e;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      font-size: 15px;
       outline: none;
+      font-family: inherit;
     }
-    .input-bar input:focus { border-color: #3b82f6; }
+    .input-bar input::placeholder { color: #636366; }
+    .input-bar input:focus { background: #2c2c2e; }
     .input-bar button {
-      background: #3b82f6;
+      background: #0a84ff;
       color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: 500;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
+      font-family: inherit;
     }
-    .input-bar button:hover { background: #2563eb; }
-    .input-bar button:active { background: #1d4ed8; }
+    .input-bar button:active { background: #0066cc; }
+    .input-bar button:disabled { opacity: 0.4; }
     .error-bar {
       padding: 8px 16px;
-      background: #7f1d1d;
-      color: #fca5a5;
+      background: rgba(255,69,58,0.15);
+      color: #ff453a;
       font-size: 13px;
       text-align: center;
       display: none;
+      flex-shrink: 0;
     }
     .error-bar.visible { display: block; }
     .empty-state {
       text-align: center;
-      color: #94a3b8;
-      padding: 40px 20px;
-      font-size: 14px;
+      color: #636366;
+      padding: 60px 20px;
+      font-size: 15px;
+      line-height: 1.4;
     }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
     .device-modal {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.5);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
     .device-modal.hidden { display: none; }
     .device-modal-box {
-      background: #1e293b;
-      padding: 20px;
-      border-radius: 12px;
+      background: #1c1c1e;
+      padding: 24px;
+      border-radius: 20px;
       width: 90%;
-      max-width: 320px;
+      max-width: 340px;
     }
-    .device-modal-box h3 { font-size: 15px; margin-bottom: 12px; }
+    .device-modal-box h3 { font-size: 17px; font-weight: 600; margin-bottom: 16px; text-align: center; }
     .device-modal-box input {
       width: 100%;
-      padding: 8px 12px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      color: #e2e8f0;
-      font-size: 14px;
+      padding: 10px 14px;
+      background: #2c2c2e;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
       outline: none;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
+      font-family: inherit;
     }
-    .device-modal-box input:focus { border-color: #3b82f6; }
     .device-modal-box .actions {
       display: flex;
       gap: 8px;
       justify-content: flex-end;
     }
     .device-modal-box button {
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 13px;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 14px;
       cursor: pointer;
       border: none;
+      font-weight: 500;
+      font-family: inherit;
     }
-    .btn-cancel { background: #334155; color: #e2e8f0; }
-    .btn-save { background: #3b82f6; color: #fff; }
+    .btn-cancel { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-save { background: #0a84ff; color: #fff; }
 
-    /* Focus styles */
     .device-btn:focus-visible,
     .input-bar button:focus-visible,
     .btn-cancel:focus-visible,
-    .btn-save:focus-visible {
-      outline: 2px solid #3b82f6;
+    .btn-save:focus-visible,
+    .search-clear:focus-visible,
+    .expand-btn:focus-visible {
+      outline: 2px solid #0a84ff;
       outline-offset: 2px;
     }
-    .input-bar input:focus-visible { outline: none; }
+    .input-bar input:focus-visible,
+    .search-bar input:focus-visible { outline: none; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="header">
-      <h1>MessageAnywhere</h1>
-      <button class="device-btn" id="deviceBtn" type="button" title="Change device name">Device</button>
+      <h1>Messages</h1>
+      <button class="device-btn" id="deviceBtn" type="button">Device</button>
     </div>
     <div class="error-bar" id="errorBar"></div>
+    <div class="search-bar" id="searchBar">
+      <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
+      <button class="search-clear hidden" id="searchClear" type="button">Clear</button>
+    </div>
     <div class="message-list" id="messageList">
-      <div class="empty-state">No messages yet. Type something below to get started.</div>
+      <div class="empty-state">
+        <div class="empty-state-icon">💬</div>
+        No messages yet<br><span style="font-size:13px">Type something below to get started</span>
+      </div>
     </div>
     <div class="input-bar">
-      <input type="text" id="messageInput" placeholder="Type or paste a message..." maxlength="10000" autocomplete="off">
+      <input type="text" id="messageInput" placeholder="Message..." maxlength="10000" autocomplete="off">
       <button id="sendBtn" type="button">Send</button>
     </div>
   </div>
@@ -250,6 +336,7 @@
     const API = '/api/messages';
     const POLL_INTERVAL = 3000;
     const DEVICE_KEY = 'device_name';
+    const PREVIEW_LENGTH = 280;
 
     // Device name
     let deviceName = localStorage.getItem(DEVICE_KEY) || '';
@@ -316,25 +403,49 @@
       return Math.floor(diff / 86400) + ' days ago';
     }
 
-    function createMessageEl(msg) {
+    function buildMessageHTML(msg, truncated) {
+      const text = escapeHtml(msg.text);
+      const preview = truncated && text.length > PREVIEW_LENGTH
+        ? text.slice(0, PREVIEW_LENGTH) + '...'
+        : text;
+      const isLong = text.length > PREVIEW_LENGTH;
+      return `
+        <div class="message-meta">
+          <span>${escapeHtml(msg.device_name)}</span>
+          <span>${relativeTime(msg.created_at)}</span>
+        </div>
+        <div class="message-text${truncated && isLong ? ' message-preview' : ''}">${preview}</div>
+        ${truncated && isLong ? '<button class="expand-btn" type="button">Show more</button>' : ''}
+        ${!truncated && isLong ? '<button class="expand-btn" type="button">Show less</button>' : ''}
+        <div class="message-hint"></div>
+      `;
+    }
+
+    function createMessageEl(msg, truncated) {
       const div = document.createElement('div');
       div.className = 'message';
       div.dataset.id = msg.id;
       div._text = msg.text;
-      div.innerHTML = `
-        <div class="message-inner">
-          <div class="message-meta">
-            <span>${escapeHtml(msg.device_name)}</span>
-            <span>${relativeTime(msg.created_at)}</span>
-          </div>
-          <div class="message-text">${escapeHtml(msg.text)}</div>
-          <div class="message-hint"></div>
-        </div>
-      `;
+      div._truncated = truncated;
+      div.innerHTML = `<div class="message-inner">${buildMessageHTML(msg, truncated)}</div>`;
       div.addEventListener('click', () => {
         if (div._editing) { div._editing = false; return; }
         copyMessage(div, div._text);
       });
+      if (truncated && msg.text.length > PREVIEW_LENGTH) {
+        div.querySelector('.expand-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          div._truncated = false;
+          div.querySelector('.message-inner').innerHTML = buildMessageHTML(msg, false);
+          div.querySelector('.expand-btn').addEventListener('click', (e2) => {
+            e2.stopPropagation();
+            div._truncated = true;
+            div.querySelector('.message-inner').innerHTML = buildMessageHTML(msg, true);
+            applySearchFilter();
+          });
+          applySearchFilter();
+        });
+      }
       return div;
     }
 
@@ -346,7 +457,7 @@
 
     function showCopied(el) {
       el.classList.add('copied');
-      el.querySelector('.message-hint').textContent = '✓ copied!';
+      el.querySelector('.message-hint').textContent = '✓ Copied';
       setTimeout(() => {
         el.classList.remove('copied');
         el.querySelector('.message-hint').textContent = '';
@@ -381,11 +492,55 @@
       }
     }
 
-    // Remove empty state if present
     function clearEmptyState() {
       const es = messageList.querySelector('.empty-state');
       if (es) es.remove();
     }
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+
+    function applySearchFilter() {
+      const query = searchInput.value.trim().toLowerCase();
+      const msgs = messageList.querySelectorAll('.message');
+      let visible = 0;
+      msgs.forEach(m => {
+        if (!query || m._text.toLowerCase().includes(query)) {
+          m.style.display = '';
+          visible++;
+        } else {
+          m.style.display = 'none';
+        }
+      });
+      if (query) {
+        searchClear.classList.remove('hidden');
+        const existingNoResults = messageList.querySelector('.search-empty');
+        if (visible === 0 && msgs.length > 0) {
+          if (!existingNoResults) {
+            const div = document.createElement('div');
+            div.className = 'empty-state search-empty';
+            div.textContent = 'No messages match "' + query + '"';
+            messageList.appendChild(div);
+          } else {
+            existingNoResults.textContent = 'No messages match "' + query + '"';
+          }
+        } else if (existingNoResults) {
+          existingNoResults.remove();
+        }
+      } else {
+        searchClear.classList.add('hidden');
+        const existingNoResults = messageList.querySelector('.search-empty');
+        if (existingNoResults) existingNoResults.remove();
+      }
+    }
+
+    searchInput.addEventListener('input', applySearchFilter);
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      applySearchFilter();
+      searchInput.focus();
+    });
 
     // Polling
     let polling = false;
@@ -402,10 +557,11 @@
         if (data.messages.length > 0) {
           clearEmptyState();
           for (const msg of data.messages) {
-            messageList.appendChild(createMessageEl(msg));
+            messageList.appendChild(createMessageEl(msg, true));
             lastId = Math.max(lastId, msg.id);
           }
           messageList.scrollTop = messageList.scrollHeight;
+          applySearchFilter();
         }
       } catch (e) {
         // Silent retry on next interval
@@ -416,7 +572,6 @@
 
     // Initial load
     poll().then(() => {
-      // Auto-scroll to bottom on first load
       messageList.scrollTop = messageList.scrollHeight;
     });
     setInterval(poll, POLL_INTERVAL);
@@ -445,7 +600,7 @@
         });
         if (res.ok) {
           messageInput.value = '';
-          poll(); // Immediate poll to show the new message
+          poll();
         } else {
           const err = await res.json();
           showError(err.error || 'Failed to send');
@@ -468,8 +623,10 @@
         const res = await fetch(API + '/' + id, { method: 'DELETE' });
         if (res.ok || res.status === 404) {
           el.remove();
+          const existingNoResults = messageList.querySelector('.search-empty');
+          if (existingNoResults) existingNoResults.remove();
           if (messageList.children.length === 0) {
-            messageList.innerHTML = '<div class="empty-state">No messages yet. Type something below to get started.</div>';
+            messageList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div>No messages yet<br><span style="font-size:13px">Type something below to get started</span></div>';
           }
         }
       } catch (e) {
@@ -538,7 +695,7 @@
     messageList.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) { swipeTarget = null; return; }
       swipeTarget = e.target.closest('.message');
-      if (!swipeTarget) return;
+      if (!swipeTarget || swipeTarget._editing) return;
       swipeStartX = e.touches[0].clientX;
       swipeStartY = e.touches[0].clientY;
       swipeDeltaX = 0;
