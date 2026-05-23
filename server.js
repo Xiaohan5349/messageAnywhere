@@ -44,18 +44,33 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/messages', (req, res) => {
   const since = req.query.since ? parseInt(req.query.since, 10) : 0;
+  const device = req.query.device || null;
 
   let messages;
   if (since > 0) {
-    const stmt = db.prepare(
-      'SELECT id, text, device_name, created_at FROM messages WHERE id > ? ORDER BY id ASC LIMIT 200'
-    );
-    messages = stmt.all(since);
+    if (device) {
+      const stmt = db.prepare(
+        'SELECT id, text, device_name, created_at FROM messages WHERE id > ? AND device_name = ? ORDER BY id ASC LIMIT 200'
+      );
+      messages = stmt.all(since, device);
+    } else {
+      const stmt = db.prepare(
+        'SELECT id, text, device_name, created_at FROM messages WHERE id > ? ORDER BY id ASC LIMIT 200'
+      );
+      messages = stmt.all(since);
+    }
   } else {
-    const stmt = db.prepare(
-      'SELECT id, text, device_name, created_at FROM messages ORDER BY id DESC LIMIT 200'
-    );
-    messages = stmt.all().reverse();
+    if (device) {
+      const stmt = db.prepare(
+        'SELECT id, text, device_name, created_at FROM messages WHERE device_name = ? ORDER BY id DESC LIMIT 200'
+      );
+      messages = stmt.all(device).reverse();
+    } else {
+      const stmt = db.prepare(
+        'SELECT id, text, device_name, created_at FROM messages ORDER BY id DESC LIMIT 200'
+      );
+      messages = stmt.all().reverse();
+    }
   }
 
   res.json({ messages });

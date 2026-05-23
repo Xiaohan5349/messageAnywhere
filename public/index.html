@@ -6,322 +6,377 @@
   <title>MessageAnywhere</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --card-mint: #e8f5e0; --card-pink: #fce4ec; --card-blue: #e3f0fc;
+      --card-yellow: #fff8e1; --card-lavender: #f3e5f5;
+      --surface: #ffffff; --surface-alt: #f5f3f7; --border: #e8e5ed;
+      --accent: #7c5cbf; --accent-dim: #f0e8f8;
+      --danger: #fecaca; --danger-text: #dc2626;
+      --success: #22c55e; --send-bg: #22c55e;
+      --text: #1a1a2e; --text-secondary: #6b7280; --text-muted: #9ca3af;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-card: 0 2px 8px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-app: 0 12px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-      background: #000;
-      color: #fff;
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex;
-      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(145deg, #f0d5f5 0%, #d5ddf8 20%, #fce4ec 45%, #d5f5e6 65%, #e8d5f5 80%, #fff4e0 100%);
+      background-attachment: fixed;
+      color: var(--text); min-height: 100vh; min-height: 100dvh;
+      display: flex; justify-content: center; align-items: center;
       -webkit-font-smoothing: antialiased;
     }
-    .app {
-      width: 100%;
-      max-width: 480px;
-      height: 100vh;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      background: #000;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      padding-top: max(16px, env(safe-area-inset-top));
-      flex-shrink: 0;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 0.5px solid rgba(255,255,255,0.1);
-    }
-    .header h1 {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-    .device-btn {
-      background: rgba(255,255,255,0.1);
-      border: none;
-      color: #0a84ff;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .device-btn:active { background: rgba(255,255,255,0.15); }
-    .search-bar {
-      padding: 8px 16px;
-      flex-shrink: 0;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .search-bar input {
-      flex: 1;
-      padding: 8px 12px;
-      background: #1c1c1e;
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
-      font-family: inherit;
-    }
-    .search-bar input::placeholder { color: #636366; }
-    .search-clear {
-      background: none;
-      border: none;
-      color: #0a84ff;
-      font-size: 14px;
-      cursor: pointer;
-      white-space: nowrap;
-      padding: 4px 8px;
-    }
-    .message-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .message {
-      position: relative;
-      overflow: hidden;
-      border-radius: 16px;
-      background: #ff453a;
-      touch-action: pan-y;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .message-inner {
-      padding: 12px 14px;
-      background: #1c1c1e;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-      position: relative;
-    }
-    .message-inner.swiping { transition: none; }
-    .message:active .message-inner { background: #2c2c2e; }
-    .message-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #8e8e93;
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-    .message-text {
-      font-size: 16px;
-      color: #fff;
-      word-break: break-word;
-      white-space: pre-wrap;
-      line-height: 1.4;
-    }
-    .message-preview {
-      max-height: 200px;
-      overflow: hidden;
-      position: relative;
-    }
-    .message-preview::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 40px;
-      background: linear-gradient(transparent, #1c1c1e);
-    }
-    .expand-btn {
-      display: block;
-      background: none;
-      border: none;
-      color: #0a84ff;
-      font-size: 13px;
-      padding: 4px 0 0;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .message-hint {
-      font-size: 11px;
-      color: #8e8e93;
-      margin-top: 4px;
-    }
-    .message.copied .message-hint { color: #30d158; }
-    .edit-textarea {
-      width: 100%;
-      padding: 8px 10px;
-      background: #2c2c2e;
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 15px;
-      font-family: inherit;
-      resize: vertical;
-      outline: none;
-      line-height: 1.4;
-    }
-    .edit-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-    .edit-actions button {
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      cursor: pointer;
-      border: none;
-      font-weight: 500;
-      font-family: inherit;
-    }
-    .btn-edit-save { background: #0a84ff; color: #fff; }
-    .btn-edit-cancel { background: rgba(255,255,255,0.1); color: #fff; }
-    .input-bar {
-      display: flex;
-      gap: 8px;
-      padding: 10px 12px;
-      padding-bottom: max(10px, env(safe-area-inset-bottom));
-      flex-shrink: 0;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 0.5px solid rgba(255,255,255,0.1);
-    }
-    .input-bar input {
-      flex: 1;
-      padding: 10px 16px;
-      background: #1c1c1e;
-      border: none;
-      border-radius: 20px;
-      color: #fff;
-      font-size: 15px;
-      outline: none;
-      font-family: inherit;
-    }
-    .input-bar input::placeholder { color: #636366; }
-    .input-bar input:focus { background: #2c2c2e; }
-    .input-bar button {
-      background: #0a84ff;
-      color: #fff;
-      border: none;
-      border-radius: 20px;
-      padding: 10px 20px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      font-family: inherit;
-    }
-    .input-bar button:active { background: #0066cc; }
-    .input-bar button:disabled { opacity: 0.4; }
-    .error-bar {
-      padding: 8px 16px;
-      background: rgba(255,69,58,0.15);
-      color: #ff453a;
-      font-size: 13px;
-      text-align: center;
-      display: none;
-      flex-shrink: 0;
-    }
-    .error-bar.visible { display: block; }
-    .empty-state {
-      text-align: center;
-      color: #636366;
-      padding: 60px 20px;
-      font-size: 15px;
-      line-height: 1.4;
-    }
-    .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
-    .device-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-    }
-    .device-modal.hidden { display: none; }
-    .device-modal-box {
-      background: #1c1c1e;
-      padding: 24px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 340px;
-    }
-    .device-modal-box h3 { font-size: 17px; font-weight: 600; margin-bottom: 16px; text-align: center; }
-    .device-modal-box input {
-      width: 100%;
-      padding: 10px 14px;
-      background: #2c2c2e;
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 16px;
-      outline: none;
-      margin-bottom: 16px;
-      font-family: inherit;
-    }
-    .device-modal-box .actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-    .device-modal-box button {
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-size: 14px;
-      cursor: pointer;
-      border: none;
-      font-weight: 500;
-      font-family: inherit;
-    }
-    .btn-cancel { background: rgba(255,255,255,0.1); color: #fff; }
-    .btn-save { background: #0a84ff; color: #fff; }
 
-    .device-btn:focus-visible,
-    .input-bar button:focus-visible,
-    .btn-cancel:focus-visible,
-    .btn-save:focus-visible,
-    .search-clear:focus-visible,
-    .expand-btn:focus-visible {
-      outline: 2px solid #0a84ff;
-      outline-offset: 2px;
+    /* App shell */
+    .app {
+      width: 100%; height: 100vh; height: 100dvh;
+      display: flex; flex-direction: column;
+      background: var(--surface); position: relative; overflow: hidden;
     }
-    .input-bar input:focus-visible,
-    .search-bar input:focus-visible { outline: none; }
+    @media (min-width: 520px) {
+      body { padding: 16px; }
+      .app { max-width: 440px; height: auto; min-height: 680px; max-height: 92vh; max-height: 92dvh;
+        border-radius: 28px; box-shadow: var(--shadow-app); }
+    }
+    @media (min-width: 768px) {
+      body { padding: 24px; }
+      .app { max-width: 540px; min-height: 720px; }
+    }
+    @media (min-width: 960px) {
+      body { padding: 28px; }
+      .app { max-width: 780px; min-height: 640px; max-height: 90vh; max-height: 90dvh; border-radius: 32px; }
+    }
+    @media (min-width: 1200px) {
+      body { padding: 36px; }
+      .app { max-width: 920px; min-height: 700px; }
+    }
+
+    /* Hero header */
+    .hero {
+      flex-shrink: 0; padding: 20px 20px 24px;
+      background: linear-gradient(160deg, #e8d5f5 0%, #d5e0f8 30%, #fce4ec 60%, #e0f5e8 100%);
+      text-align: center; position: relative; overflow: hidden;
+    }
+    @media (min-width: 520px) { .hero { padding: 24px 24px 28px; } }
+    @media (min-width: 768px) { .hero { padding: 28px 32px 32px; } }
+    .hero::before {
+      content: ''; position: absolute; top: -60px; right: -60px;
+      width: 180px; height: 180px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); pointer-events: none;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -40px; left: -30px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+    @media (min-width: 768px) { .hero-title { font-size: 26px; } }
+    .hero-status { font-size: 11px; color: var(--success); font-weight: 600; margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .hero-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+
+    /* Device avatars pill */
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 0;
+      background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-radius: 24px; padding: 6px 16px 6px 8px;
+      margin-top: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.8);
+    }
+    .hero-pill:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.10); background: #fff; }
+    .hero-pill:active { transform: scale(0.97); }
+    .hp-avatars { display: flex; align-items: center; }
+    .hp-avatar {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff; margin-left: -8px;
+    }
+    .hp-avatar:first-child { margin-left: 0; }
+    .hp-label { font-size: 12px; font-weight: 700; color: var(--text); margin-left: 10px; white-space: nowrap; }
+
+    /* Waveform decoration */
+    .hero-waveform { display: flex; gap: 3px; align-items: flex-end; justify-content: center; height: 18px; margin-top: 10px; opacity: 0.4; }
+    .hero-waveform span { width: 3px; border-radius: 2px; background: var(--accent); }
+    .hero-waveform span:nth-child(1) { height: 8px; animation: wf 1.2s ease-in-out infinite; }
+    .hero-waveform span:nth-child(2) { height: 16px; animation: wf 1.2s ease-in-out 0.15s infinite; }
+    .hero-waveform span:nth-child(3) { height: 10px; animation: wf 1.2s ease-in-out 0.3s infinite; }
+    .hero-waveform span:nth-child(4) { height: 18px; animation: wf 1.2s ease-in-out 0.45s infinite; }
+    .hero-waveform span:nth-child(5) { height: 12px; animation: wf 1.2s ease-in-out 0.6s infinite; }
+    .hero-waveform span:nth-child(6) { height: 14px; animation: wf 1.2s ease-in-out 0.75s infinite; }
+    .hero-waveform span:nth-child(7) { height: 9px; animation: wf 1.2s ease-in-out 0.9s infinite; }
+    @keyframes wf { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+    /* Device name edit button */
+    .hero-device-btn {
+      display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(0,0,0,0.06); color: var(--text-secondary);
+      padding: 4px 14px; border-radius: 12px; font-size: 11px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .hero-device-btn:hover { background: #fff; color: var(--accent); }
+
+    /* Content sheet */
+    .content-sheet {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+      background: var(--surface); border-top: 1px solid var(--border);
+    }
+    @media (min-width: 520px) {
+      .content-sheet { border-radius: 20px 20px 0 0; margin-top: -10px; position: relative; z-index: 2; }
+    }
+
+    /* Tab bar */
+    .tab-bar { display: flex; gap: 2px; padding: 10px 14px; flex-shrink: 0; background: var(--surface); justify-content: center; }
+    .tab-bar-inner { display: flex; gap: 1px; background: var(--surface-alt); border-radius: 14px; padding: 3px; border: 1px solid var(--border); }
+    .tab-btn { padding: 7px 22px; border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 12px; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
+    .tab-btn.active { background: #fff; color: var(--accent); box-shadow: var(--shadow-sm); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+    @media (min-width: 768px) { .tab-btn { padding: 7px 28px; font-size: 13px; } }
+
+    /* Detail header (device messages) */
+    .detail-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .back-btn { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text); padding: 5px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.15s; }
+    .back-btn:hover { background: #fff; }
+    .detail-name { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; }
+
+    /* Search */
+    .search-bar { padding: 6px 14px 8px; flex-shrink: 0; display: flex; gap: 6px; align-items: center; }
+    .search-bar input { flex: 1; padding: 9px 14px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-size: 13px; outline: none; font-family: inherit; transition: all 0.2s; }
+    .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,191,0.08); background: #fff; }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    .search-clear { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; white-space: nowrap; padding: 4px 8px; font-family: inherit; font-weight: 600; }
+
+    /* Views */
+    .view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .view.active { display: flex; }
+
+    /* Message list */
+    .message-list { flex: 1; overflow-y: auto; padding: 6px 14px; display: flex; flex-direction: column; gap: 3px; -webkit-overflow-scrolling: touch; }
+    .message { position: relative; overflow: hidden; border-radius: 14px; background: var(--danger); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+    .message-inner { padding: 8px 10px 8px 8px; cursor: pointer; transition: transform 0.2s ease; position: relative; border-radius: 14px; display: flex; gap: 8px; align-items: flex-start; }
+    .message-inner.swiping { transition: none; }
+    .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; line-height: 1; letter-spacing: 0; }
+    .msg-body { flex: 1; min-width: 0; }
+    .message-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; margin-bottom: 1px; }
+    .msg-author { font-weight: 700; color: var(--text); font-size: 12px; }
+    .msg-time { font-size: 10px; color: var(--text-muted); }
+    .message-text { font-size: 13px; color: var(--text); word-break: break-word; white-space: pre-wrap; line-height: 1.45; }
+    .message-preview { max-height: 130px; overflow: hidden; position: relative; }
+    .message-preview::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: linear-gradient(transparent, var(--preview-bg, #fff)); }
+    .expand-btn { display: block; background: none; border: none; color: var(--accent); font-size: 11px; padding: 3px 0 0; cursor: pointer; font-family: inherit; font-weight: 700; }
+    .expand-btn:hover { opacity: 0.8; }
+    .message-hint { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .message.copied .message-hint { color: var(--success); font-weight: 600; }
+
+    /* Edit */
+    .edit-textarea { width: 100%; padding: 8px 10px; background: var(--surface-alt); border: 2px solid var(--accent); border-radius: 10px; color: var(--text); font-size: 13px; font-family: inherit; resize: vertical; outline: none; line-height: 1.45; }
+    .edit-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+    .edit-actions button { padding: 5px 14px; border-radius: 16px; font-size: 12px; cursor: pointer; border: none; font-weight: 700; font-family: inherit; transition: all 0.15s; }
+    .btn-edit-save { background: var(--accent); color: #fff; }
+    .btn-edit-save:hover { opacity: 0.9; }
+    .btn-edit-cancel { background: var(--surface-alt); color: var(--text-secondary); border: 1px solid var(--border); }
+
+    /* Input bar */
+    .input-bar { display: flex; gap: 8px; padding: 8px 14px; padding-bottom: max(8px, env(safe-area-inset-bottom)); flex-shrink: 0; background: rgba(255,255,255,0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); align-items: center; }
+    .input-bar input { flex: 1; padding: 10px 16px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 20px; color: var(--text); font-size: 13px; outline: none; font-family: inherit; transition: all 0.2s; min-width: 0; }
+    .input-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,191,0.08); background: #fff; }
+    .input-bar input::placeholder { color: var(--text-muted); }
+    .input-bar button { background: var(--send-bg); color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; min-width: 40px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(34,197,94,0.25); }
+    .input-bar button:hover { background: #16a34a; transform: scale(1.05); }
+    .input-bar button:active { transform: scale(0.95); }
+    .input-bar button:disabled { opacity: 0.4; transform: none; }
+
+    /* Error */
+    .error-bar { padding: 6px 14px; background: #fef2f2; color: var(--danger-text); font-size: 11px; text-align: center; display: none; flex-shrink: 0; border-bottom: 1px solid var(--danger); font-weight: 600; }
+    .error-bar.visible { display: block; }
+
+    /* Empty state */
+    .empty-state { text-align: center; color: var(--text-muted); padding: 32px 16px; font-size: 13px; line-height: 1.6; }
+
+    /* Device list (grid) */
+    .device-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 16px; -webkit-overflow-scrolling: touch; }
+    @media (min-width: 768px) { .device-list { padding: 14px 18px; } }
+
+    /* Section headings */
+    .section-heading { font-size: 13px; font-weight: 800; color: var(--text); padding: 0 2px; letter-spacing: -0.1px; }
+    .section-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+    /* Device cards grid */
+    .device-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 520px) { .device-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 768px) { .device-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+    @media (min-width: 960px) { .device-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1200px) { .device-grid { grid-template-columns: repeat(4, 1fr); } }
+
+    .device-card {
+      border-radius: 16px; padding: 14px; cursor: pointer; transition: all 0.2s;
+      box-shadow: var(--shadow-card); display: flex; gap: 10px; align-items: flex-start;
+      border: 1px solid rgba(0,0,0,0.04); position: relative; overflow: hidden;
+    }
+    .device-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.10); }
+    .device-card:active { transform: scale(0.98); }
+    .device-card::after {
+      content: ''; position: absolute; top: -18px; right: -18px;
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(255,255,255,0.5); pointer-events: none;
+    }
+    .dc-avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff; position: relative; z-index: 1;
+    }
+    .dc-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
+    .dc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .dc-name { font-size: 14px; font-weight: 800; color: var(--text); }
+    .dc-badge { font-size: 10px; color: var(--accent); font-weight: 700; background: rgba(124,92,191,0.1); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+    .dc-preview { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    .dc-footer { display: flex; justify-content: space-between; align-items: center; }
+    .dc-time { font-size: 10px; color: var(--text-muted); }
+    .dc-waveform { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+    .dc-waveform span { width: 2px; border-radius: 1px; background: var(--accent); opacity: 0.4; }
+    .dc-waveform span:nth-child(1) { height: 5px; } .dc-waveform span:nth-child(2) { height: 12px; } .dc-waveform span:nth-child(3) { height: 7px; } .dc-waveform span:nth-child(4) { height: 14px; }
+
+    /* Recent activity */
+    .recent-section { padding: 0; }
+    .recent-card {
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+      border-radius: 14px; cursor: pointer; transition: all 0.15s;
+      border: 1px solid transparent; background: var(--surface-alt);
+    }
+    .recent-card:hover { background: #fff; border-color: var(--border); box-shadow: var(--shadow-sm); }
+    .recent-card:active { transform: scale(0.98); }
+    .rc-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    .rc-body { flex: 1; min-width: 0; }
+    .rc-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .rc-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .rc-time { font-size: 10px; color: var(--text-muted); }
+    .rc-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .recent-list { display: flex; flex-direction: column; gap: 6px; }
+
+    /* Quick actions */
+    .quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    @media (min-width: 520px) { .quick-actions { grid-template-columns: repeat(3, 1fr); } }
+    .qa-card {
+      display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+      border-radius: 14px; cursor: pointer; transition: all 0.15s;
+      border: 1px solid rgba(0,0,0,0.04); background: var(--surface-alt);
+      font-family: inherit; font-size: 12px; font-weight: 700; color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+    .qa-card:hover { background: #fff; border-color: var(--border); box-shadow: var(--shadow-card); transform: translateY(-1px); }
+    .qa-card:active { transform: scale(0.97); }
+    .qa-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+    .qa-label { flex: 1; text-align: left; }
+
+    /* Modal */
+    .device-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 20; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .device-modal.hidden { display: none; }
+    .device-modal-box { background: #fff; padding: 24px 20px; border-radius: 20px; width: 90%; max-width: 320px; box-shadow: var(--shadow-app); }
+    .device-modal-box h3 { font-size: 16px; font-weight: 800; margin-bottom: 14px; text-align: center; color: var(--text); }
+    .device-modal-box input { width: 100%; padding: 10px 14px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 14px; outline: none; margin-bottom: 14px; font-family: inherit; transition: all 0.2s; }
+    .device-modal-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,191,0.08); background: #fff; }
+    .device-modal-box .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .device-modal-box button { padding: 8px 20px; border-radius: 16px; font-size: 13px; cursor: pointer; border: none; font-weight: 700; font-family: inherit; transition: all 0.15s; }
+    .btn-cancel { background: var(--surface-alt); color: var(--text-secondary); }
+    .btn-cancel:hover { background: #eee; }
+    .btn-save { background: var(--accent); color: #fff; }
+    .btn-save:hover { opacity: 0.9; }
+
+    /* Utility */
+    .hidden { display: none !important; }
+
+    /* Focus */
+    .tab-btn:focus-visible, .back-btn:focus-visible, .input-bar button:focus-visible, .btn-cancel:focus-visible, .btn-save:focus-visible, .search-clear:focus-visible, .expand-btn:focus-visible, .device-card:focus-visible, .recent-card:focus-visible, .qa-card:focus-visible, .hero-pill:focus-visible, .hero-device-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* Responsive refinements */
+    @media (max-width: 360px) {
+      .hero { padding: 14px 14px 18px; } .hero-title { font-size: 18px; }
+      .device-card { padding: 10px; gap: 8px; } .dc-name { font-size: 13px; }
+      .dc-avatar { width: 28px; height: 28px; font-size: 12px; }
+      .msg-avatar { width: 24px; height: 24px; font-size: 11px; }
+      .message-inner { padding: 6px 8px 6px 6px; gap: 6px; } .message-text { font-size: 12px; }
+      .input-bar { padding: 6px 10px; gap: 6px; } .input-bar input { padding: 8px 12px; font-size: 12px; }
+      .input-bar button { width: 36px; height: 36px; min-width: 36px; font-size: 15px; }
+      .tab-btn { padding: 5px 14px; font-size: 11px; }
+    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="header">
-      <h1>Messages</h1>
-      <button class="device-btn" id="deviceBtn" type="button">Device</button>
-    </div>
-    <div class="error-bar" id="errorBar"></div>
-    <div class="search-bar" id="searchBar">
-      <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
-      <button class="search-clear hidden" id="searchClear" type="button">Clear</button>
-    </div>
-    <div class="message-list" id="messageList">
-      <div class="empty-state">
-        <div class="empty-state-icon">💬</div>
-        No messages yet<br><span style="font-size:13px">Type something below to get started</span>
+  <div class="app" id="appContainer">
+    <!-- Hero header (hidden on device detail) -->
+    <div class="hero" id="mainHeader">
+      <div class="hero-content">
+        <div class="hero-title">MessageAnywhere</div>
+        <div class="hero-status">Local Network</div>
+        <div class="hero-pill" id="heroPill" title="View connected devices">
+          <div class="hp-avatars" id="heroAvatars"></div>
+          <span class="hp-label" id="heroPillLabel">No devices</span>
+        </div>
+        <div class="hero-waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <button class="hero-device-btn" id="deviceBtn" type="button">Device</button>
       </div>
     </div>
-    <div class="input-bar">
-      <input type="text" id="messageInput" placeholder="Message..." maxlength="10000" autocomplete="off">
-      <button id="sendBtn" type="button">Send</button>
+
+    <!-- Device detail header (visible only on device detail) -->
+    <div class="detail-header hidden" id="deviceMsgHeader">
+      <button class="back-btn" id="deviceBackBtn" type="button">← Back</button>
+      <span class="detail-name" id="deviceMsgName"></span>
+    </div>
+
+    <div class="error-bar" id="errorBar"></div>
+
+    <!-- Content sheet -->
+    <div class="content-sheet">
+      <!-- Tab bar (hidden on device detail) -->
+      <div class="tab-bar" id="tabBar">
+        <div class="tab-bar-inner">
+          <button class="tab-btn active" data-view="messages" type="button">Chats</button>
+          <button class="tab-btn" data-view="devices" type="button">Devices</button>
+        </div>
+      </div>
+
+      <!-- Messages view -->
+      <div class="view active" id="viewMessages">
+        <div class="search-bar" id="searchBar">
+          <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
+          <button class="search-clear hidden" id="searchClear" type="button">Clear</button>
+        </div>
+        <div class="message-list" id="messageList">
+          <div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>
+        </div>
+        <div class="input-bar">
+          <input type="text" id="messageInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
+          <button id="sendBtn" type="button" aria-label="Send message">↑</button>
+        </div>
+      </div>
+
+      <!-- Devices view -->
+      <div class="view" id="viewDevices">
+        <div class="device-list" id="deviceList">
+          <div class="empty-state">No devices yet<br><span style="font-size:11px;color:var(--text-muted)">Messages will appear here by device</span></div>
+        </div>
+      </div>
+
+      <!-- Device detail view -->
+      <div class="view" id="viewDeviceMessages">
+        <div class="search-bar">
+          <input type="text" id="deviceSearchInput" placeholder="Search this device..." autocomplete="off">
+          <button class="search-clear hidden" id="deviceSearchClear" type="button">Clear</button>
+        </div>
+        <div class="message-list" id="deviceMessageList">
+          <div class="empty-state"><span style="color:var(--text-muted)">Loading...</span></div>
+        </div>
+        <div class="input-bar">
+          <input type="text" id="deviceMsgInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
+          <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
+        </div>
+      </div>
     </div>
   </div>
+
   <div class="device-modal hidden" id="deviceModal" role="dialog" aria-modal="true" aria-labelledby="deviceModalTitle">
     <div class="device-modal-box">
       <h3 id="deviceModalTitle">Device Name</h3>
@@ -332,431 +387,428 @@
       </div>
     </div>
   </div>
+
   <script>
     const API = '/api/messages';
     const POLL_INTERVAL = 3000;
     const DEVICE_KEY = 'device_name';
     const PREVIEW_LENGTH = 280;
 
+    const AVATAR_COLORS = ['#7c5cbf','#e87da0','#5b9bd5','#5bb5a0','#e8a45b','#a07cc5','#d4788c','#6aaf6a','#c5945b','#8b7ec8'];
+    const PASTEL_BGS = ['#e8f5e0','#fce4ec','#e3f0fc','#fff8e1','#f3e5f5','#e8f0fa','#f5f0e8','#e0f0f5'];
+    function avatarColor(name) { let h=0; for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h); return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]; }
+    function pastelBg(name) { let h=0; for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h); return PASTEL_BGS[Math.abs(h)%PASTEL_BGS.length]; }
+    function avatarInit(name) { return (name||'?').charAt(0).toUpperCase(); }
+
     // Device name
     let deviceName = localStorage.getItem(DEVICE_KEY) || '';
-
     function getDeviceName() {
       if (!deviceName) {
-        const ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/.test(ua)) return 'iPhone';
-        if (/Android/.test(ua)) return /Tablet|Tab/.test(ua) ? 'Android Tablet' : 'Android Phone';
-        if (/Mac/.test(ua) && !/iPhone|iPad/.test(ua)) return 'Mac';
-        if (/Windows/.test(ua)) return 'Windows PC';
-        return 'Unknown Device';
+        const ua=navigator.userAgent;
+        if(/iPhone|iPad|iPod/.test(ua))return'iPhone';
+        if(/Android/.test(ua))return/Tablet|Tab/.test(ua)?'Android Tablet':'Android Phone';
+        if(/Mac/.test(ua)&&!/iPhone|iPad/.test(ua))return'Mac';
+        if(/Windows/.test(ua))return'Windows PC';
+        return'Unknown Device';
       }
       return deviceName;
     }
-
-    function updateDeviceBtn() {
-      document.getElementById('deviceBtn').textContent = getDeviceName();
-    }
+    function updateDeviceBtn(){ document.getElementById('deviceBtn').textContent=getDeviceName(); }
     updateDeviceBtn();
 
     // Device name modal
-    const deviceModal = document.getElementById('deviceModal');
-    const deviceNameInput = document.getElementById('deviceNameInput');
+    const deviceModal=document.getElementById('deviceModal');
+    const deviceNameInput=document.getElementById('deviceNameInput');
+    document.getElementById('deviceBtn').addEventListener('click',()=>{ deviceNameInput.value=getDeviceName(); deviceModal.classList.remove('hidden'); deviceNameInput.focus(); deviceNameInput.select(); });
+    document.getElementById('modalCancel').addEventListener('click',()=>{ deviceModal.classList.add('hidden'); });
+    function saveDeviceName(){ const n=deviceNameInput.value.trim(); if(n){ deviceName=n; localStorage.setItem(DEVICE_KEY,n); updateDeviceBtn(); refreshDeviceList(); updateHero(); } deviceModal.classList.add('hidden'); }
+    document.getElementById('modalSave').addEventListener('click',saveDeviceName);
+    deviceNameInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')saveDeviceName(); if(e.key==='Escape')deviceModal.classList.add('hidden'); });
 
-    document.getElementById('deviceBtn').addEventListener('click', () => {
-      deviceNameInput.value = getDeviceName();
-      deviceModal.classList.remove('hidden');
-      deviceNameInput.focus();
-      deviceNameInput.select();
+    // View switching
+    let currentView='messages', activeDevice=null, previousView='messages';
+    const viewMessages=document.getElementById('viewMessages');
+    const viewDevices=document.getElementById('viewDevices');
+    const viewDeviceMessages=document.getElementById('viewDeviceMessages');
+    const deviceListView=document.getElementById('deviceList');
+    const deviceMessageList=document.getElementById('deviceMessageList');
+    const deviceMsgName=document.getElementById('deviceMsgName');
+    const mainHeader=document.getElementById('mainHeader');
+    const deviceMsgHeader=document.getElementById('deviceMsgHeader');
+    const tabBar=document.getElementById('tabBar');
+
+    document.getElementById('tabBar').addEventListener('click',(e)=>{
+      const tab=e.target.closest('.tab-btn'); if(!tab)return;
+      switchView(tab.dataset.view);
     });
+    document.getElementById('deviceBackBtn').addEventListener('click',()=>{ switchView(previousView); });
 
-    document.getElementById('modalCancel').addEventListener('click', () => {
-      deviceModal.classList.add('hidden');
-    });
+    // Hero pill click -> switch to Devices view
+    document.getElementById('heroPill').addEventListener('click',()=>{ switchView('devices'); });
 
-    function saveDeviceName() {
-      const name = deviceNameInput.value.trim();
-      if (name) {
-        deviceName = name;
-        localStorage.setItem(DEVICE_KEY, name);
-        updateDeviceBtn();
-      }
-      deviceModal.classList.add('hidden');
+    function switchView(view) {
+      if(view!=='device-messages') previousView=view;
+      currentView=view;
+      if(view!=='device-messages') activeDevice=null;
+
+      // Toggle hero vs detail header vs tab bar
+      mainHeader.classList.toggle('hidden', view==='device-messages');
+      deviceMsgHeader.classList.toggle('hidden', view!=='device-messages');
+      tabBar.classList.toggle('hidden', view==='device-messages');
+
+      document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
+      const tab=document.querySelector('.tab-btn[data-view="'+ (view==='device-messages'?'devices':view) +'"]');
+      if(tab)tab.classList.add('active');
+
+      viewMessages.classList.toggle('active',view==='messages');
+      viewDevices.classList.toggle('active',view==='devices');
+      viewDeviceMessages.classList.toggle('active',view==='device-messages');
+
+      if(view==='devices'){ refreshDeviceList(); }
     }
 
-    document.getElementById('modalSave').addEventListener('click', saveDeviceName);
-    deviceNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') saveDeviceName();
-      if (e.key === 'Escape') deviceModal.classList.add('hidden');
-    });
+    function showDeviceDetail(name) {
+      activeDevice=name;
+      deviceMsgName.textContent=name;
+      document.getElementById('deviceSearchInput').value='';
+      document.getElementById('deviceSearchClear').classList.add('hidden');
+      document.getElementById('deviceMsgInput').value='';
+      switchView('device-messages');
+      deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">Loading...</span></div>';
+      fetch(API+'?device='+encodeURIComponent(name))
+        .then(r=>r.json()).then(data=>{
+          deviceMessageList.innerHTML='';
+          if(data.messages.length===0){ deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>'; }
+          else { data.messages.forEach(msg=>{ deviceMessageList.appendChild(createMessageEl(msg,true,deviceMessageList)); }); deviceMessageList.scrollTop=deviceMessageList.scrollHeight; }
+        }).catch(()=>{ deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--danger-text)">Failed to load</span></div>'; });
+    }
+
+    // Build device info from loaded messages
+    function buildDeviceInfo() {
+      const allMsgs=messageList.querySelectorAll('.message');
+      const devices={};
+      allMsgs.forEach(m=>{
+        const nm=m._deviceName||'Unknown';
+        if(!devices[nm]) devices[nm]={count:0,lastTime:'',lastId:0,lastText:''};
+        devices[nm].count++;
+        if(parseInt(m.dataset.id)>devices[nm].lastId){ devices[nm].lastId=parseInt(m.dataset.id); devices[nm].lastTime=m._createdAt||''; devices[nm].lastText=m._text||''; }
+      });
+      return Object.entries(devices).sort((a,b)=>b[1].lastId-a[1].lastId).map(([name,info])=>({name,...info}));
+    }
+
+    // Recent messages for the home section
+    function getRecentMessages(limit) {
+      const msgs=[];
+      messageList.querySelectorAll('.message').forEach(m=>{
+        msgs.push({id:parseInt(m.dataset.id),text:m._text||'',device_name:m._deviceName||'Unknown',created_at:m._createdAt||''});
+      });
+      msgs.sort((a,b)=>b.id-a.id);
+      return msgs.slice(0,limit||5);
+    }
+
+    // Hero
+    function updateHero() {
+      const container=document.getElementById('heroAvatars');
+      const labelEl=document.getElementById('heroPillLabel');
+      const devices=buildDeviceInfo();
+      container.innerHTML='';
+      if(devices.length===0){
+        labelEl.textContent='No devices';
+        return;
+      }
+      const shown=devices.slice(0,4);
+      shown.forEach(d=>{
+        const el=document.createElement('div');
+        el.className='hp-avatar';
+        el.style.background=avatarColor(d.name);
+        el.textContent=avatarInit(d.name);
+        el.title=d.name;
+        container.appendChild(el);
+      });
+      const total=devices.reduce((s,d)=>s+d.count,0);
+      labelEl.textContent=devices.length+' device'+(devices.length>1?'s':'')+' · '+total+' msg';
+    }
+
+    // Device list
+    function buildDeviceList() { return buildDeviceInfo(); }
+
+    function refreshDeviceList() {
+      if(currentView!=='devices'||activeDevice)return;
+      const devices=buildDeviceList();
+      const list=deviceListView;
+      list.innerHTML='';
+      if(devices.length===0){ list.innerHTML='<div class="empty-state">No devices yet<br><span style="font-size:11px;color:var(--text-muted)">Messages will appear here by device</span></div>'; return; }
+
+      // Device cards grid
+      const grid=document.createElement('div');
+      grid.className='device-grid';
+      devices.forEach(d=>{
+        const bg=pastelBg(d.name);
+        const card=document.createElement('div');
+        card.className='device-card';
+        card.style.background=bg;
+        card.innerHTML=`
+          <div class="dc-avatar" style="background:${avatarColor(d.name)}">${avatarInit(d.name)}</div>
+          <div class="dc-body">
+            <div class="dc-header"><span class="dc-name">${escapeHtml(d.name)}</span><span class="dc-badge">${d.count} msg</span></div>
+            <div class="dc-preview">${escapeHtml((d.lastText||'No messages').substring(0,60))}</div>
+            <div class="dc-footer"><span class="dc-time">${d.lastTime?relativeTime(d.lastTime):''}</span><div class="dc-waveform"><span></span><span></span><span></span><span></span></div></div>
+          </div>`;
+        card.addEventListener('click',()=>showDeviceDetail(d.name));
+        grid.appendChild(card);
+      });
+      list.appendChild(grid);
+
+      // Recent activity section
+      const recentMsgs=getRecentMessages(5);
+      if(recentMsgs.length>0){
+        const sec=document.createElement('div');
+        sec.className='recent-section';
+        sec.innerHTML='<div class="section-heading">Recent Activity</div><div class="section-sub" style="margin-bottom:6px">Latest messages across all devices</div>';
+        const rlist=document.createElement('div');
+        rlist.className='recent-list';
+        recentMsgs.forEach(msg=>{
+          const card=document.createElement('div');
+          card.className='recent-card';
+          card.innerHTML=`
+            <div class="rc-avatar" style="background:${avatarColor(msg.device_name)}">${avatarInit(msg.device_name)}</div>
+            <div class="rc-body">
+              <div class="rc-header"><span class="rc-name">${escapeHtml(msg.device_name)}</span><span class="rc-time">${relativeTime(msg.created_at)}</span></div>
+              <div class="rc-text">${escapeHtml((msg.text||'').substring(0,80))}</div>
+            </div>`;
+          card.addEventListener('click',()=>showDeviceDetail(msg.device_name));
+          rlist.appendChild(card);
+        });
+        sec.appendChild(rlist);
+        list.appendChild(sec);
+      }
+
+      // Quick actions
+      const actions=document.createElement('div');
+      actions.style.padding='0';
+      actions.innerHTML='<div class="section-heading" style="margin-top:4px">Quick Actions</div>';
+      const qgrid=document.createElement('div');
+      qgrid.className='quick-actions';
+      qgrid.style.marginTop='6px';
+
+      const newMsg=document.createElement('button');
+      newMsg.className='qa-card'; newMsg.type='button';
+      newMsg.innerHTML='<span class="qa-icon">💬</span><span class="qa-label">New Message</span>';
+      newMsg.addEventListener('click',()=>{ switchView('messages'); setTimeout(()=>document.getElementById('messageInput').focus(),100); });
+
+      const refresh=document.createElement('button');
+      refresh.className='qa-card'; refresh.type='button';
+      refresh.innerHTML='<span class="qa-icon">🔄</span><span class="qa-label">Refresh</span>';
+      refresh.addEventListener('click',()=>{ poll(); });
+
+      qgrid.appendChild(newMsg);
+      qgrid.appendChild(refresh);
+      actions.appendChild(qgrid);
+      list.appendChild(actions);
+    }
 
     // Messages
-    let lastId = 0;
-    const messageList = document.getElementById('messageList');
+    let lastId=0;
+    const messageList=document.getElementById('messageList');
 
-    function relativeTime(iso) {
-      const now = Date.now();
-      const then = new Date(iso).getTime();
-      const diff = Math.floor((now - then) / 1000);
-      if (diff < 60) return 'just now';
-      if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-      if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
-      return Math.floor(diff / 86400) + ' days ago';
+    function relativeTime(iso){ const now=Date.now(),then=new Date(iso).getTime(),diff=Math.floor((now-then)/1000); if(diff<60)return'just now'; if(diff<3600)return Math.floor(diff/60)+'m ago'; if(diff<86400)return Math.floor(diff/3600)+'h ago'; return Math.floor(diff/86400)+'d ago'; }
+
+    function buildMessageHTML(msg,truncated){
+      const text=escapeHtml(msg.text);
+      const preview=truncated&&text.length>PREVIEW_LENGTH?text.slice(0,PREVIEW_LENGTH)+'...':text;
+      const isLong=text.length>PREVIEW_LENGTH;
+      return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div><div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'<div class="message-hint"></div></div>';
     }
 
-    function buildMessageHTML(msg, truncated) {
-      const text = escapeHtml(msg.text);
-      const preview = truncated && text.length > PREVIEW_LENGTH
-        ? text.slice(0, PREVIEW_LENGTH) + '...'
-        : text;
-      const isLong = text.length > PREVIEW_LENGTH;
-      return `
-        <div class="message-meta">
-          <span>${escapeHtml(msg.device_name)}</span>
-          <span>${relativeTime(msg.created_at)}</span>
-        </div>
-        <div class="message-text${truncated && isLong ? ' message-preview' : ''}">${preview}</div>
-        ${truncated && isLong ? '<button class="expand-btn" type="button">Show more</button>' : ''}
-        ${!truncated && isLong ? '<button class="expand-btn" type="button">Show less</button>' : ''}
-        <div class="message-hint"></div>
-      `;
-    }
-
-    function createMessageEl(msg, truncated) {
-      const div = document.createElement('div');
-      div.className = 'message';
-      div.dataset.id = msg.id;
-      div._text = msg.text;
-      div._truncated = truncated;
-      div.innerHTML = `<div class="message-inner">${buildMessageHTML(msg, truncated)}</div>`;
-      div.addEventListener('click', () => {
-        if (div._editing) { div._editing = false; return; }
-        copyMessage(div, div._text);
-      });
-      if (truncated && msg.text.length > PREVIEW_LENGTH) {
-        div.querySelector('.expand-btn').addEventListener('click', (e) => {
-          e.stopPropagation();
-          div._truncated = false;
-          div.querySelector('.message-inner').innerHTML = buildMessageHTML(msg, false);
-          div.querySelector('.expand-btn').addEventListener('click', (e2) => {
-            e2.stopPropagation();
-            div._truncated = true;
-            div.querySelector('.message-inner').innerHTML = buildMessageHTML(msg, true);
-            applySearchFilter();
+    function createMessageEl(msg,truncated,listEl){
+      const div=document.createElement('div');
+      div.className='message'; div.dataset.id=msg.id;
+      div._text=msg.text; div._deviceName=msg.device_name; div._createdAt=msg.created_at;
+      div._truncated=truncated; div._listEl=listEl||messageList;
+      const bg=pastelBg(msg.device_name);
+      div.innerHTML='<div class="message-inner" style="background:'+bg+'">'+buildMessageHTML(msg,truncated)+'</div>';
+      const previewEl=div.querySelector('.message-preview');
+      if(previewEl)previewEl.style.setProperty('--preview-bg',bg);
+      div.addEventListener('click',()=>{ if(div._editing){div._editing=false;return;} copyMessage(div,div._text); });
+      if(truncated&&msg.text.length>PREVIEW_LENGTH){
+        div.querySelector('.expand-btn').addEventListener('click',(e)=>{
+          e.stopPropagation(); div._truncated=false;
+          div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,false);
+          const p2=div.querySelector('.message-preview'); if(p2)p2.style.setProperty('--preview-bg',bg);
+          div.querySelector('.expand-btn').addEventListener('click',(e2)=>{
+            e2.stopPropagation(); div._truncated=true;
+            div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,true);
+            const p3=div.querySelector('.message-preview'); if(p3)p3.style.setProperty('--preview-bg',bg);
+            if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
           });
-          applySearchFilter();
+          if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
         });
       }
       return div;
     }
 
-    function escapeHtml(str) {
-      const d = document.createElement('div');
-      d.textContent = str;
-      return d.innerHTML;
-    }
+    function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
 
-    function showCopied(el) {
-      el.classList.add('copied');
-      el.querySelector('.message-hint').textContent = '✓ Copied';
-      setTimeout(() => {
-        el.classList.remove('copied');
-        el.querySelector('.message-hint').textContent = '';
-      }, 1000);
-    }
+    function showCopied(el){ el.classList.add('copied'); const hint=el.querySelector('.message-hint'); if(hint)hint.textContent='✓ Copied'; setTimeout(()=>{ el.classList.remove('copied'); if(hint)hint.textContent=''; },1200); }
 
-    function copyMessage(el, text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
-          showCopied(el);
-        }).catch(() => {
-          fallbackCopy(el, text);
-        });
-      } else {
-        fallbackCopy(el, text);
-      }
-    }
+    function copyMessage(el,text){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(()=>{showCopied(el);}).catch(()=>{fallbackCopy(el,text);}); } else {fallbackCopy(el,text);} }
+    function fallbackCopy(el,text){ try{ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); document.body.removeChild(ta); if(ok)showCopied(el); }catch(e){} }
 
-    function fallbackCopy(el, text) {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        const ok = document.execCommand('copy');
-        document.body.removeChild(ta);
-        if (ok) showCopied(el);
-      } catch (e) {
-        // Clipboard unavailable
-      }
-    }
-
-    function clearEmptyState() {
-      const es = messageList.querySelector('.empty-state');
-      if (es) es.remove();
-    }
+    function clearEmptyState(listEl){ const es=listEl.querySelector('.empty-state'); if(es)es.remove(); }
 
     // Search
-    const searchInput = document.getElementById('searchInput');
-    const searchClear = document.getElementById('searchClear');
-
-    function applySearchFilter() {
-      const query = searchInput.value.trim().toLowerCase();
-      const msgs = messageList.querySelectorAll('.message');
-      let visible = 0;
-      msgs.forEach(m => {
-        if (!query || m._text.toLowerCase().includes(query)) {
-          m.style.display = '';
-          visible++;
-        } else {
-          m.style.display = 'none';
-        }
-      });
-      if (query) {
-        searchClear.classList.remove('hidden');
-        const existingNoResults = messageList.querySelector('.search-empty');
-        if (visible === 0 && msgs.length > 0) {
-          if (!existingNoResults) {
-            const div = document.createElement('div');
-            div.className = 'empty-state search-empty';
-            div.textContent = 'No messages match "' + query + '"';
-            messageList.appendChild(div);
-          } else {
-            existingNoResults.textContent = 'No messages match "' + query + '"';
-          }
-        } else if (existingNoResults) {
-          existingNoResults.remove();
-        }
-      } else {
-        searchClear.classList.add('hidden');
-        const existingNoResults = messageList.querySelector('.search-empty');
-        if (existingNoResults) existingNoResults.remove();
-      }
+    const searchInput=document.getElementById('searchInput'), searchClear=document.getElementById('searchClear');
+    function applySearchFilter(){
+      const q=searchInput.value.trim().toLowerCase(), msgs=messageList.querySelectorAll('.message'); let vis=0;
+      msgs.forEach(m=>{ if(!q||m._text.toLowerCase().includes(q)){m.style.display='';vis++;}else{m.style.display='none';} });
+      if(q){ searchClear.classList.remove('hidden'); const nr=messageList.querySelector('.search-empty');
+        if(vis===0&&msgs.length>0){ if(!nr){const d=document.createElement('div');d.className='empty-state search-empty';d.textContent='No messages match "'+q+'"';messageList.appendChild(d);}else{nr.textContent='No messages match "'+q+'"';} }else if(nr){nr.remove();}
+      }else{ searchClear.classList.add('hidden'); const nr=messageList.querySelector('.search-empty'); if(nr)nr.remove(); }
     }
+    searchInput.addEventListener('input',applySearchFilter);
+    searchClear.addEventListener('click',()=>{searchInput.value='';applySearchFilter();searchInput.focus();});
 
-    searchInput.addEventListener('input', applySearchFilter);
-    searchClear.addEventListener('click', () => {
-      searchInput.value = '';
-      applySearchFilter();
-      searchInput.focus();
-    });
+    const deviceSearchInput=document.getElementById('deviceSearchInput'), deviceSearchClear=document.getElementById('deviceSearchClear');
+    function applyDeviceSearchFilter(){
+      const q=deviceSearchInput.value.trim().toLowerCase(), msgs=deviceMessageList.querySelectorAll('.message'); let vis=0;
+      msgs.forEach(m=>{ if(!q||m._text.toLowerCase().includes(q)){m.style.display='';vis++;}else{m.style.display='none';} });
+      if(q){ deviceSearchClear.classList.remove('hidden'); const nr=deviceMessageList.querySelector('.search-empty');
+        if(vis===0&&msgs.length>0){ if(!nr){const d=document.createElement('div');d.className='empty-state search-empty';d.textContent='No messages match "'+q+'"';deviceMessageList.appendChild(d);}else{nr.textContent='No messages match "'+q+'"';} }else if(nr){nr.remove();}
+      }else{ deviceSearchClear.classList.add('hidden'); const nr=deviceMessageList.querySelector('.search-empty'); if(nr)nr.remove(); }
+    }
+    deviceSearchInput.addEventListener('input',applyDeviceSearchFilter);
+    deviceSearchClear.addEventListener('click',()=>{deviceSearchInput.value='';applyDeviceSearchFilter();deviceSearchInput.focus();});
 
     // Polling
-    let polling = false;
-
-    async function poll() {
-      if (polling) return;
-      polling = true;
-      try {
-        let url = API;
-        if (lastId > 0) url += '?since=' + lastId;
-        const res = await fetch(url);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.messages.length > 0) {
-          clearEmptyState();
-          for (const msg of data.messages) {
-            messageList.appendChild(createMessageEl(msg, true));
-            lastId = Math.max(lastId, msg.id);
-          }
-          messageList.scrollTop = messageList.scrollHeight;
-          applySearchFilter();
+    let polling=false;
+    async function poll(){
+      if(polling)return; polling=true;
+      try{
+        const prevLastId=lastId; let url=API; if(lastId>0)url+='?since='+lastId;
+        const res=await fetch(url); if(!res.ok)return;
+        const data=await res.json();
+        if(data.messages.length>0){
+          clearEmptyState(messageList);
+          for(const msg of data.messages){ messageList.appendChild(createMessageEl(msg,true,messageList)); lastId=Math.max(lastId,msg.id); }
+          messageList.scrollTop=messageList.scrollHeight;
+          applySearchFilter(); refreshDeviceList(); updateHero();
         }
-      } catch (e) {
-        // Silent retry on next interval
-      } finally {
-        polling = false;
-      }
-    }
-
-    // Initial load
-    poll().then(() => {
-      messageList.scrollTop = messageList.scrollHeight;
-    });
-    setInterval(poll, POLL_INTERVAL);
-
-    // Send
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const errorBar = document.getElementById('errorBar');
-
-    function showError(msg) {
-      errorBar.textContent = msg;
-      errorBar.classList.add('visible');
-      setTimeout(() => errorBar.classList.remove('visible'), 4000);
-    }
-
-    async function sendMessage() {
-      const text = messageInput.value.trim();
-      if (!text) return;
-
-      sendBtn.disabled = true;
-      try {
-        const res = await fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, device_name: getDeviceName() })
-        });
-        if (res.ok) {
-          messageInput.value = '';
-          poll();
-        } else {
-          const err = await res.json();
-          showError(err.error || 'Failed to send');
-        }
-      } catch (e) {
-        showError('Failed to send. Server may be offline.');
-      } finally {
-        sendBtn.disabled = false;
-        messageInput.focus();
-      }
-    }
-
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    async function deleteMessage(el, id) {
-      try {
-        const res = await fetch(API + '/' + id, { method: 'DELETE' });
-        if (res.ok || res.status === 404) {
-          el.remove();
-          const existingNoResults = messageList.querySelector('.search-empty');
-          if (existingNoResults) existingNoResults.remove();
-          if (messageList.children.length === 0) {
-            messageList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💬</div>No messages yet<br><span style="font-size:13px">Type something below to get started</span></div>';
+        if(activeDevice){
+          const dUrl=API+'?device='+encodeURIComponent(activeDevice)+'&since='+prevLastId;
+          const dRes=await fetch(dUrl);
+          if(dRes.ok){ const dData=await dRes.json();
+            if(dData.messages.length>0){ clearEmptyState(deviceMessageList);
+              dData.messages.forEach(msg=>{deviceMessageList.appendChild(createMessageEl(msg,true,deviceMessageList));});
+              deviceMessageList.scrollTop=deviceMessageList.scrollHeight; applyDeviceSearchFilter();
+            }
           }
         }
-      } catch (e) {
-        // Silent
-      }
+      }catch(e){}finally{polling=false;}
+    }
+    poll().then(()=>{ messageList.scrollTop=messageList.scrollHeight; updateHero(); });
+    setInterval(poll,POLL_INTERVAL);
+
+    // Send — view-aware
+    const messageInput=document.getElementById('messageInput');
+    const sendBtn=document.getElementById('sendBtn');
+    const deviceMsgInput=document.getElementById('deviceMsgInput');
+    const deviceSendBtn=document.getElementById('deviceSendBtn');
+    const errorBar=document.getElementById('errorBar');
+
+    function showError(msg){ errorBar.textContent=msg; errorBar.classList.add('visible'); setTimeout(()=>errorBar.classList.remove('visible'),4000); }
+
+    async function sendMessage(inputEl,btnEl){
+      inputEl=inputEl||(currentView==='device-messages'?deviceMsgInput:messageInput);
+      btnEl=btnEl||(currentView==='device-messages'?deviceSendBtn:sendBtn);
+      const text=inputEl.value.trim();
+      if(!text)return;
+      btnEl.disabled=true;
+      try{
+        const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,device_name:getDeviceName()})});
+        if(res.ok){ inputEl.value=''; poll(); }
+        else{ const err=await res.json(); showError(err.error||'Failed to send'); }
+      }catch(e){ showError('Failed to send. Server may be offline.'); }
+      finally{ btnEl.disabled=false; inputEl.focus(); }
+    }
+
+    sendBtn.addEventListener('click',()=>sendMessage(messageInput,sendBtn));
+    messageInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')sendMessage(messageInput,sendBtn); });
+    deviceSendBtn.addEventListener('click',()=>sendMessage(deviceMsgInput,deviceSendBtn));
+    deviceMsgInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')sendMessage(deviceMsgInput,deviceSendBtn); });
+
+    // Delete
+    async function deleteMessage(el,id){
+      try{
+        const res=await fetch(API+'/'+id,{method:'DELETE'});
+        if(res.ok||res.status===404){
+          el.remove(); const parentList=el.parentElement; const nr=parentList.querySelector('.search-empty'); if(nr)nr.remove();
+          if(parentList.children.length===0){
+            if(parentList===deviceMessageList){ parentList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>'; }
+            else{ parentList.innerHTML='<div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>'; }
+          }
+          refreshDeviceList(); updateHero();
+        }
+      }catch(e){}
     }
 
     // Swipe and long-press
-    let swipeTarget = null;
-    let swipeStartX = 0;
-    let swipeStartY = 0;
-    let swipeDeltaX = 0;
-    let swiping = false;
-    let longPressTimer = null;
+    let swipeTarget=null,swipeStartX=0,swipeStartY=0,swipeDeltaX=0,swiping=false,longPressTimer=null;
 
-    function enterEditMode(el) {
-      const textEl = el.querySelector('.message-text');
-      const original = el._text;
-      textEl.innerHTML = `
-        <textarea class="edit-textarea" rows="3" maxlength="10000">${escapeHtml(original)}</textarea>
-        <div class="edit-actions">
-          <button class="btn-edit-cancel" type="button">Cancel</button>
-          <button class="btn-edit-save" type="button">Save</button>
-        </div>
-      `;
-      const ta = textEl.querySelector('.edit-textarea');
-      ta.focus();
-      ta.setSelectionRange(ta.value.length, ta.value.length);
-      ta.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(el); }
-        if (e.key === 'Escape') cancelEdit(el);
-      });
-      textEl.querySelector('.btn-edit-cancel').addEventListener('click', () => cancelEdit(el));
-      textEl.querySelector('.btn-edit-save').addEventListener('click', () => saveEdit(el));
-      el._editing = true;
+    function enterEditMode(el){
+      const bodyEl=el.querySelector('.msg-body');
+      const textEl=bodyEl?bodyEl.querySelector('.message-text'):el.querySelector('.message-text');
+      const original=el._text;
+      textEl.innerHTML='<textarea class="edit-textarea" rows="3" maxlength="10000">'+escapeHtml(original)+'</textarea><div class="edit-actions"><button class="btn-edit-cancel" type="button">Cancel</button><button class="btn-edit-save" type="button">Save</button></div>';
+      const ta=textEl.querySelector('.edit-textarea'); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length);
+      ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveEdit(el);} if(e.key==='Escape')cancelEdit(el); });
+      textEl.querySelector('.btn-edit-cancel').addEventListener('click',()=>cancelEdit(el));
+      textEl.querySelector('.btn-edit-save').addEventListener('click',()=>saveEdit(el));
+      el._editing=true;
+    }
+    function cancelEdit(el){ const bodyEl=el.querySelector('.msg-body'); const textEl=bodyEl?bodyEl.querySelector('.message-text'):el.querySelector('.message-text'); if(textEl)textEl.textContent=el._text; el._editing=false; }
+    async function saveEdit(el){
+      const ta=el.querySelector('.edit-textarea'); const text=ta?ta.value.trim():''; if(!text)return;
+      try{
+        const res=await fetch(API+'/'+el.dataset.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+        if(res.ok){ el._text=text; const bodyEl=el.querySelector('.msg-body'); const textEl=bodyEl?bodyEl.querySelector('.message-text'):el.querySelector('.message-text'); if(textEl)textEl.textContent=text; el._editing=false; }
+        else{const err=await res.json();showError(err.error||'Failed to save');}
+      }catch(e){showError('Failed to save. Server may be offline.');}
     }
 
-    function cancelEdit(el) {
-      el.querySelector('.message-text').textContent = el._text;
-      el._editing = false;
+    function handleTouchStart(e){
+      if(e.touches.length!==1){swipeTarget=null;return;}
+      swipeTarget=e.target.closest('.message'); if(!swipeTarget||swipeTarget._editing)return;
+      swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;swipeDeltaX=0;swiping=false;
+      longPressTimer=setTimeout(()=>{if(!swiping)enterEditMode(swipeTarget);longPressTimer=null;},500);
     }
-
-    async function saveEdit(el) {
-      const ta = el.querySelector('.edit-textarea');
-      const text = ta ? ta.value.trim() : '';
-      if (!text) return;
-      try {
-        const res = await fetch(API + '/' + el.dataset.id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-        });
-        if (res.ok) {
-          el._text = text;
-          el.querySelector('.message-text').textContent = text;
-          el._editing = false;
-        } else {
-          const err = await res.json();
-          showError(err.error || 'Failed to save');
-        }
-      } catch (e) {
-        showError('Failed to save. Server may be offline.');
-      }
+    function handleTouchMove(e){
+      if(!swipeTarget)return; const dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
+      if(!swiping&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>5){swiping=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
+      if(!swiping)return; e.preventDefault();
+      swipeDeltaX=Math.max(-120,Math.min(0,dx)); const inner=swipeTarget.querySelector('.message-inner');
+      if(inner){inner.classList.add('swiping');inner.style.transform='translateX('+swipeDeltaX+'px)';}
     }
+    function handleTouchEnd(){
+      if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;} if(!swipeTarget)return;
+      const inner=swipeTarget.querySelector('.message-inner');
+      if(inner){ inner.classList.remove('swiping');inner.style.transition='transform 0.2s ease';
+        if(swipeDeltaX<-80){ swipeTarget._editing=true;inner.style.transform='translateX(-120%)'; const id=parseInt(swipeTarget.dataset.id,10); if(id)deleteMessage(swipeTarget,id); }
+        else{inner.style.transform='translateX(0)';}
+      } swipeTarget=null;
+    }
+    function handleContextMenu(e){ const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return; e.preventDefault();enterEditMode(msgEl); }
+    function handleDblClick(e){ const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return; msgEl._editing=true; const id=parseInt(msgEl.dataset.id,10); if(id)deleteMessage(msgEl,id); }
 
-    messageList.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) { swipeTarget = null; return; }
-      swipeTarget = e.target.closest('.message');
-      if (!swipeTarget || swipeTarget._editing) return;
-      swipeStartX = e.touches[0].clientX;
-      swipeStartY = e.touches[0].clientY;
-      swipeDeltaX = 0;
-      swiping = false;
-      longPressTimer = setTimeout(() => {
-        if (!swiping) enterEditMode(swipeTarget);
-        longPressTimer = null;
-      }, 500);
-    }, { passive: true });
-
-    messageList.addEventListener('touchmove', (e) => {
-      if (!swipeTarget) return;
-      const dx = e.touches[0].clientX - swipeStartX;
-      const dy = e.touches[0].clientY - swipeStartY;
-      if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
-        swiping = true;
-        if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-      }
-      if (!swiping) return;
-      e.preventDefault();
-      swipeDeltaX = Math.max(-120, Math.min(0, dx));
-      const inner = swipeTarget.querySelector('.message-inner');
-      if (inner) {
-        inner.classList.add('swiping');
-        inner.style.transform = `translateX(${swipeDeltaX}px)`;
-      }
-    }, { passive: false });
-
-    messageList.addEventListener('contextmenu', (e) => {
-      const msgEl = e.target.closest('.message');
-      if (!msgEl || msgEl._editing) return;
-      e.preventDefault();
-      enterEditMode(msgEl);
-    });
-
-    messageList.addEventListener('dblclick', (e) => {
-      const msgEl = e.target.closest('.message');
-      if (!msgEl || msgEl._editing) return;
-      msgEl._editing = true;
-      const id = parseInt(msgEl.dataset.id, 10);
-      if (id) deleteMessage(msgEl, id);
-    });
-
-    messageList.addEventListener('touchend', () => {
-      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-      if (!swipeTarget) return;
-      const inner = swipeTarget.querySelector('.message-inner');
-      if (inner) {
-        inner.classList.remove('swiping');
-        inner.style.transition = 'transform 0.2s ease';
-        if (swipeDeltaX < -80) {
-          swipeTarget._editing = true;
-          inner.style.transform = 'translateX(-120%)';
-          const id = parseInt(swipeTarget.dataset.id, 10);
-          if (id) deleteMessage(swipeTarget, id);
-        } else {
-          inner.style.transform = 'translateX(0)';
-        }
-      }
-      swipeTarget = null;
-    });
+    messageList.addEventListener('touchstart',handleTouchStart,{passive:true});
+    messageList.addEventListener('touchmove',handleTouchMove,{passive:false});
+    messageList.addEventListener('touchend',handleTouchEnd);
+    messageList.addEventListener('contextmenu',handleContextMenu);
+    messageList.addEventListener('dblclick',handleDblClick);
+    deviceMessageList.addEventListener('touchstart',handleTouchStart,{passive:true});
+    deviceMessageList.addEventListener('touchmove',handleTouchMove,{passive:false});
+    deviceMessageList.addEventListener('touchend',handleTouchEnd);
+    deviceMessageList.addEventListener('contextmenu',handleContextMenu);
+    deviceMessageList.addEventListener('dblclick',handleDblClick);
   </script>
 </body>
 </html>
