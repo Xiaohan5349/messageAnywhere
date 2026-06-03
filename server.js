@@ -79,6 +79,30 @@ setInterval(cleanupExpired, 60 * 60 * 1000);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Attach image metadata to message objects
+function attachImages(messages) {
+  if (messages.length === 0) return messages;
+  const ids = messages.map(m => m.id);
+  const placeholders = ids.map(() => '?').join(',');
+  const imgStmt = db.prepare(
+    `SELECT id, message_id, filename, original_name, mime_type, size
+     FROM images WHERE message_id IN (${placeholders}) ORDER BY id ASC`
+  );
+  const allImages = imgStmt.all(...ids);
+  const byMsg = {};
+  for (const img of allImages) {
+    if (!byMsg[img.message_id]) byMsg[img.message_id] = [];
+    byMsg[img.message_id].push({
+      id: img.id,
+      url: '/uploads/' + img.filename,
+      original_name: img.original_name,
+      mime_type: img.mime_type,
+      size: img.size
+    });
+  }
+  return messages.map(m => ({ ...m, images: byMsg[m.id] || [] }));
+}
+
 app.get('/api/messages', (req, res) => {
   const since = req.query.since ? parseInt(req.query.since, 10) : 0;
   const device = req.query.device || null;
@@ -110,7 +134,7 @@ app.get('/api/messages', (req, res) => {
     }
   }
 
-  res.json({ messages });
+  res.json({ messages: attachImages(messages) });
 });
 
 app.post('/api/messages', upload.any(), (req, res, next) => {
@@ -204,7 +228,8 @@ app.put('/api/messages/:id', (req, res) => {
     return res.status(404).json({ error: 'not found' });
   }
 
-  res.json({ id, text: text.trim() });
+  const updated = db.prepare('SELECT id, text, device_name, created_at FROM messages WHERE id = ?').get(id);
+  res.json(attachImages([updated])[0]);
 });
 
 app.delete('/api/messages/:id', (req, res) => {
