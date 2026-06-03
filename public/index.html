@@ -150,8 +150,9 @@
     .view.active { display: flex; }
 
     /* Message list */
-    .message-list { flex: 1; overflow-y: auto; padding: 6px 14px; display: flex; flex-direction: column; gap: 3px; -webkit-overflow-scrolling: touch; }
-    .message { position: relative; overflow: hidden; border-radius: 14px; background: var(--danger); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+    .message-list { flex: 1; overflow-y: auto; padding: 6px 14px; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
+    .message { position: relative; border-radius: 14px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+    .message.swiped { overflow: hidden; background: var(--danger); }
     .message-inner { padding: 8px 10px 8px 8px; cursor: pointer; transition: transform 0.2s ease; position: relative; border-radius: 14px; display: flex; gap: 8px; align-items: flex-start; }
     .message-inner.swiping { transition: none; }
     .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; line-height: 1; letter-spacing: 0; }
@@ -669,17 +670,23 @@
       if(previewEl)previewEl.style.setProperty('--preview-bg',bg);
       div.addEventListener('click',()=>{
   if(div._editing){div._editing=false;return;}
-  let copyText=div._text||'';
+
+  // Image messages: copy first image blob to clipboard (via promise to preserve user gesture)
   if(div._images&&div._images.length>0){
-    const urls=div._images.map(img=>window.location.origin+img.url).join('\n');
-    copyText=copyText?copyText+'\n'+urls:urls;
+    const img=div._images[0];
+    const blobP=fetch(img.url).then(r=>r.blob());
+    navigator.clipboard.write([new ClipboardItem({[img.mime_type]:blobP})])
+      .then(()=>showCopied(div))
+      .catch(()=>{
+        // Fallback: copy URLs as text
+        const urls=div._images.map(i=>window.location.origin+i.url).join('\n');
+        navigator.clipboard.writeText((div._text||'')?div._text+'\n'+urls:urls).then(()=>showCopied(div)).catch(()=>{});
+      });
+    return;
   }
-  copyMessage(div,copyText);
-  if(div._images&&div._images.length>0&&navigator.clipboard&&navigator.clipboard.write){
-    fetch(div._images[0].url).then(r=>r.blob()).then(blob=>{
-      navigator.clipboard.write([new ClipboardItem({[blob.type]:blob})]).catch(()=>{});
-    }).catch(()=>{});
-  }
+
+  // Text-only: copy text
+  copyMessage(div,div._text||'');
 });
       if(truncated&&typeof msg.text==='string'&&msg.text.length>PREVIEW_LENGTH){
         div.querySelector('.expand-btn').addEventListener('click',(e)=>{
@@ -962,20 +969,20 @@
       longPressTimer=setTimeout(()=>{if(!swiping)enterEditMode(swipeTarget);longPressTimer=null;},500);
     }
     function handleTouchMove(e){
-      if(!swipeTarget)return; const dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
-      if(!swiping&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>5){swiping=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
-      if(!swiping)return; e.preventDefault();
-      swipeDeltaX=Math.max(-120,Math.min(0,dx)); const inner=swipeTarget.querySelector('.message-inner');
-      if(inner){inner.classList.add('swiping');inner.style.transform='translateX('+swipeDeltaX+'px)';}
-    }
-    function handleTouchEnd(){
-      if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;} if(!swipeTarget)return;
-      const inner=swipeTarget.querySelector('.message-inner');
-      if(inner){ inner.classList.remove('swiping');inner.style.transition='transform 0.2s ease';
-        if(swipeDeltaX<-80){ swipeTarget._editing=true;inner.style.transform='translateX(-120%)'; const id=parseInt(swipeTarget.dataset.id,10); if(id)deleteMessage(swipeTarget,id); }
-        else{inner.style.transform='translateX(0)';}
-      } swipeTarget=null;
-    }
+  if(!swipeTarget)return; const dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
+  if(!swiping&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>5){swiping=true;swipeTarget.classList.add('swiped');if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
+  if(!swiping)return; e.preventDefault();
+  swipeDeltaX=Math.max(-120,Math.min(0,dx)); const inner=swipeTarget.querySelector('.message-inner');
+  if(inner){inner.classList.add('swiping');inner.style.transform='translateX('+swipeDeltaX+'px)';}
+}
+function handleTouchEnd(){
+  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;} if(!swipeTarget)return;
+  const inner=swipeTarget.querySelector('.message-inner');
+  if(inner){ inner.classList.remove('swiping');inner.style.transition='transform 0.2s ease';
+    if(swipeDeltaX<-80){ swipeTarget._editing=true;inner.style.transform='translateX(-120%)'; const id=parseInt(swipeTarget.dataset.id,10); if(id)deleteMessage(swipeTarget,id); }
+    else{inner.style.transform='translateX(0)';setTimeout(()=>{if(swipeTarget)swipeTarget.classList.remove('swiped');},250);}
+  } swipeTarget=null;
+}
     function handleContextMenu(e){ const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return; e.preventDefault();enterEditMode(msgEl); }
     function handleDblClick(e){ const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return; msgEl._editing=true; const id=parseInt(msgEl.dataset.id,10); if(id)deleteMessage(msgEl,id); }
 
