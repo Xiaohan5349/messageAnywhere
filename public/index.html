@@ -671,17 +671,30 @@
       div.addEventListener('click',()=>{
   if(div._editing){div._editing=false;return;}
 
-  // Image messages: copy first image blob to clipboard (via promise to preserve user gesture)
+  // Image messages: copy first image to clipboard
   if(div._images&&div._images.length>0){
     const img=div._images[0];
-    const blobP=fetch(img.url).then(r=>r.blob());
-    navigator.clipboard.write([new ClipboardItem({[img.mime_type]:blobP})])
-      .then(()=>showCopied(div))
-      .catch(()=>{
-        // Fallback: copy URLs as text
-        const urls=div._images.map(i=>window.location.origin+i.url).join('\n');
-        navigator.clipboard.writeText((div._text||'')?div._text+'\n'+urls:urls).then(()=>showCopied(div)).catch(()=>{});
-      });
+    const imgUrl=window.location.origin+img.url;
+
+    // ClipboardItem (image copy) requires secure context: localhost or HTTPS
+    if(window.isSecureContext&&navigator.clipboard&&navigator.clipboard.write&&typeof ClipboardItem!=='undefined'){
+      // Convert to PNG via canvas (ensures universal clipboard format support)
+      const pngBlobP=fetch(img.url)
+        .then(r=>r.blob())
+        .then(blob=>createImageBitmap(blob))
+        .then(bmp=>{
+          const c=document.createElement('canvas');
+          c.width=bmp.width;c.height=bmp.height;
+          c.getContext('2d').drawImage(bmp,0,0);
+          return new Promise(resolve=>c.toBlob(resolve,'image/png'));
+        });
+      navigator.clipboard.write([new ClipboardItem({'image/png':pngBlobP})])
+        .then(()=>showCopied(div))
+        .catch(()=>{navigator.clipboard.writeText(imgUrl).then(()=>showCopied(div)).catch(()=>{});});
+    }else{
+      // Non-secure context (LAN IP access): copy image URL
+      fallbackCopy(div,imgUrl);
+    }
     return;
   }
 
