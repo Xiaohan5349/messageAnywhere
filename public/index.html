@@ -376,8 +376,8 @@
         <input type="file" id="imageInput" accept="image/*" multiple hidden>
         <div class="preview-strip hidden" id="previewStrip"></div>
         <div class="input-bar">
-          <button id="sendBtn" type="button" aria-label="Send message">↑</button>
           <input type="text" id="messageInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
+          <button id="sendBtn" type="button" aria-label="Send message">↑</button>
           <button class="attach-btn" id="attachBtn" type="button" aria-label="Attach images">📎</button>
         </div>
       </div>
@@ -401,8 +401,8 @@
         <input type="file" id="deviceImageInput" accept="image/*" multiple hidden>
         <div class="preview-strip hidden" id="devicePreviewStrip"></div>
         <div class="input-bar">
-          <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
           <input type="text" id="deviceMsgInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
+          <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
           <button class="attach-btn" id="deviceAttachBtn" type="button" aria-label="Attach images">📎</button>
         </div>
       </div>
@@ -682,45 +682,33 @@
       div.addEventListener('click',()=>{
   if(div._editing){div._editing=false;return;}
 
-  // Collapsed images: first click expands, second click copies (like long text)
-  if(div._images&&div._images.length>0&&!div._imagesExpanded){
-    const mi=div.querySelector('.msg-images');
-    if(mi){mi.classList.remove('collapsed');div._imagesExpanded=true;}
-    const hint=div.querySelector('.msg-img-hint');
-    if(hint)hint.classList.remove('visible');
-    // Also expand truncated text
-    if(div._truncated){
-      const textEl=div.querySelector('.message-text');
-      const btn=div.querySelector('.expand-btn');
-      if(textEl){textEl.classList.remove('message-preview');textEl.textContent=escapeHtml(div._text||(div._text?'':'📷 Image'));}
-      if(btn)btn.textContent='Show less';
-    }
-    return;
-  }
-
-  // Image messages: copy first image to clipboard
+  // Image messages: toggle expand/collapse
   if(div._images&&div._images.length>0){
-    const img=div._images[0];
-    const imgUrl=window.location.origin+img.url;
+    const mi=div.querySelector('.msg-images');
+    const hint=div.querySelector('.msg-img-hint');
 
-    // ClipboardItem (image copy) requires secure context: localhost or HTTPS
-    if(window.isSecureContext&&navigator.clipboard&&navigator.clipboard.write&&typeof ClipboardItem!=='undefined'){
-      // Convert to PNG via canvas (ensures universal clipboard format support)
-      const pngBlobP=fetch(img.url)
-        .then(r=>r.blob())
-        .then(blob=>createImageBitmap(blob))
-        .then(bmp=>{
-          const c=document.createElement('canvas');
-          c.width=bmp.width;c.height=bmp.height;
-          c.getContext('2d').drawImage(bmp,0,0);
-          return new Promise(resolve=>c.toBlob(resolve,'image/png'));
-        });
-      navigator.clipboard.write([new ClipboardItem({'image/png':pngBlobP})])
-        .then(()=>showCopied(div))
-        .catch(()=>{navigator.clipboard.writeText(imgUrl).then(()=>showCopied(div)).catch(()=>{});});
+    if(!div._imagesExpanded){
+      // Expand: show images + full text
+      if(mi){mi.classList.remove('collapsed');div._imagesExpanded=true;}
+      if(hint)hint.classList.remove('visible');
+      if(div._truncated){
+        const textEl=div.querySelector('.message-text');
+        const btn=div.querySelector('.expand-btn');
+        if(textEl){textEl.classList.remove('message-preview');textEl.textContent=escapeHtml(div._text||'');}
+        if(btn)btn.textContent='Show less';
+        div._truncated=false;
+      }
     }else{
-      // Non-secure context (LAN IP access): copy image URL
-      fallbackCopy(div,imgUrl);
+      // Collapse: hide images + truncate text
+      if(mi){mi.classList.add('collapsed');div._imagesExpanded=false;}
+      if(hint)hint.classList.add('visible');
+      if(div._text&&div._text.length>80){
+        const textEl=div.querySelector('.message-text');
+        const btn=div.querySelector('.expand-btn');
+        if(textEl){textEl.classList.add('message-preview');textEl.textContent=escapeHtml(div._text).slice(0,80)+'...';}
+        if(btn)btn.textContent='Show more';
+        div._truncated=true;
+      }
     }
     return;
   }
