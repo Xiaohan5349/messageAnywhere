@@ -295,6 +295,8 @@
     .preview-item img { width: 100%; height: 100%; object-fit: cover; }
     .preview-remove { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--danger-text); color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
     .msg-images { margin-top: 5px; }
+    .msg-images.collapsed { max-height: 150px; overflow: hidden; position: relative; }
+    .msg-images.collapsed::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, var(--preview-bg, #fff)); pointer-events: none; }
     .msg-img-single { border-radius: 10px; max-width: 100%; height: auto; cursor: pointer; display: block; }
     .msg-img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .msg-img-grid-item { aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; }
@@ -373,9 +375,9 @@
         <input type="file" id="imageInput" accept="image/*" multiple hidden>
         <div class="preview-strip hidden" id="previewStrip"></div>
         <div class="input-bar">
+          <button id="sendBtn" type="button" aria-label="Send message">↑</button>
           <input type="text" id="messageInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
           <button class="attach-btn" id="attachBtn" type="button" aria-label="Attach images">📎</button>
-          <button id="sendBtn" type="button" aria-label="Send message">↑</button>
         </div>
       </div>
 
@@ -398,9 +400,9 @@
         <input type="file" id="deviceImageInput" accept="image/*" multiple hidden>
         <div class="preview-strip hidden" id="devicePreviewStrip"></div>
         <div class="input-bar">
+          <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
           <input type="text" id="deviceMsgInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
           <button class="attach-btn" id="deviceAttachBtn" type="button" aria-label="Attach images">📎</button>
-          <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
         </div>
       </div>
     </div>
@@ -663,13 +665,22 @@
       div.className='message'; div.dataset.id=msg.id;
       div._text=msg.text; div._deviceName=msg.device_name; div._createdAt=msg.created_at;
       div._images=msg.images||[];
-      div._truncated=truncated; div._listEl=listEl||messageList;
+      div._truncated=truncated; div._listEl=listEl||messageList; div._imagesExpanded=false;
       const bg=pastelBg(msg.device_name);
       div.innerHTML='<div class="message-inner" style="background:'+bg+'">'+buildMessageHTML(msg,truncated)+'</div>';
       const previewEl=div.querySelector('.message-preview');
       if(previewEl)previewEl.style.setProperty('--preview-bg',bg);
+      const msgImages=div.querySelector('.msg-images');
+      if(msgImages)msgImages.style.setProperty('--preview-bg',bg);
       div.addEventListener('click',()=>{
   if(div._editing){div._editing=false;return;}
+
+  // Collapsed images: first click expands, second click copies (like long text)
+  if(div._images&&div._images.length>0&&!div._imagesExpanded){
+    const mi=div.querySelector('.msg-images');
+    if(mi){mi.classList.remove('collapsed');div._imagesExpanded=true;}
+    return;
+  }
 
   // Image messages: copy first image to clipboard
   if(div._images&&div._images.length>0){
@@ -702,17 +713,19 @@
   copyMessage(div,div._text||'');
 });
       if(truncated&&typeof msg.text==='string'&&msg.text.length>PREVIEW_LENGTH){
-        div.querySelector('.expand-btn').addEventListener('click',(e)=>{
-          e.stopPropagation(); div._truncated=false;
-          div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,false);
-          const p2=div.querySelector('.message-preview'); if(p2)p2.style.setProperty('--preview-bg',bg);
-          if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
-          div.querySelector('.expand-btn').addEventListener('click',(e2)=>{
-            e2.stopPropagation(); div._truncated=true;
-            div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,true);
-            const p3=div.querySelector('.message-preview'); if(p3)p3.style.setProperty('--preview-bg',bg);
-            if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
-            if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
+  div.querySelector('.expand-btn').addEventListener('click',(e)=>{
+    e.stopPropagation(); div._truncated=false;
+    div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,false);
+    const p2=div.querySelector('.message-preview'); if(p2)p2.style.setProperty('--preview-bg',bg);
+    const mi=div.querySelector('.msg-images');if(mi){mi.style.setProperty('--preview-bg',bg);if(div._imagesExpanded)mi.classList.remove('collapsed');}
+    if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
+    div.querySelector('.expand-btn').addEventListener('click',(e2)=>{
+      e2.stopPropagation(); div._truncated=true;
+      div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,true);
+      const p3=div.querySelector('.message-preview'); if(p3)p3.style.setProperty('--preview-bg',bg);
+      const mi2=div.querySelector('.msg-images');if(mi2){mi2.style.setProperty('--preview-bg',bg);if(div._imagesExpanded)mi2.classList.remove('collapsed');}
+      if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
+      if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
           });
           if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
         });
@@ -726,9 +739,9 @@
     function buildImagesHTML(images){
       if(!images||images.length===0)return'';
       if(images.length===1){
-        return'<div class="msg-images"><img class="msg-img-single" src="'+escapeHtml(images[0].url)+'" alt="'+escapeHtml(images[0].original_name)+'" loading="lazy" data-img-index="0"></div>';
+        return'<div class="msg-images collapsed"><img class="msg-img-single" src="'+escapeHtml(images[0].url)+'" alt="'+escapeHtml(images[0].original_name)+'" loading="lazy" data-img-index="0"></div>';
       }
-      let h='<div class="msg-images"><div class="msg-img-grid">';
+      let h='<div class="msg-images collapsed"><div class="msg-img-grid">';
       images.forEach((img,i)=>{h+='<div class="msg-img-grid-item"><img src="'+escapeHtml(img.url)+'" alt="'+escapeHtml(img.original_name)+'" loading="lazy" data-img-index="'+i+'"></div>';});
       h+='</div></div>';
       return h;
@@ -947,7 +960,7 @@
       const original=el._text||'';
       const hasImages=el._images&&el._images.length>0;
       let editHTML='<textarea class="edit-textarea" rows="3" maxlength="10000">'+escapeHtml(original)+'</textarea><div class="edit-actions"><button class="btn-edit-cancel" type="button">Cancel</button><button class="btn-edit-save" type="button">Save</button></div>';
-      if(hasImages){editHTML+=buildImagesHTML(el._images);}
+      if(hasImages){editHTML+=buildImagesHTML(el._images).replace(' collapsed','');}
       textEl.innerHTML=editHTML;
       const ta=textEl.querySelector('.edit-textarea');ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
       ta.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveEdit(el);}if(e.key==='Escape')cancelEdit(el);});
@@ -957,23 +970,27 @@
       el._editing=true;
     }
     function cancelEdit(el){
-      const msg={id:parseInt(el.dataset.id),text:el._text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
+  const msg={id:parseInt(el.dataset.id),text:el._text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
+  el.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,el._truncated);
+  if(el._imagesExpanded){const mi=el.querySelector('.msg-images');if(mi)mi.classList.remove('collapsed');}
+  const bg=el.querySelector('.message-inner')?.style.background;const mi2=el.querySelector('.msg-images');if(mi2&&bg)mi2.style.setProperty('--preview-bg',bg);
+  if(msg.images&&msg.images.length>0){wireImageClicks(el,msg.images);}
+  el._editing=false;
+}
+async function saveEdit(el){
+  const ta=el.querySelector('.edit-textarea');const text=ta?ta.value.trim():'';if(!text)return;
+  try{
+    const res=await fetch(API+'/'+el.dataset.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    if(res.ok){
+      el._text=text;const msg={id:parseInt(el.dataset.id),text:text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
       el.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,el._truncated);
+      if(el._imagesExpanded){const mi=el.querySelector('.msg-images');if(mi)mi.classList.remove('collapsed');}
+      const bg=el.querySelector('.message-inner')?.style.background;const mi2=el.querySelector('.msg-images');if(mi2&&bg)mi2.style.setProperty('--preview-bg',bg);
       if(msg.images&&msg.images.length>0){wireImageClicks(el,msg.images);}
       el._editing=false;
-    }
-    async function saveEdit(el){
-      const ta=el.querySelector('.edit-textarea');const text=ta?ta.value.trim():'';if(!text)return;
-      try{
-        const res=await fetch(API+'/'+el.dataset.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-        if(res.ok){
-          el._text=text;const msg={id:parseInt(el.dataset.id),text:text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
-          el.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,el._truncated);
-          if(msg.images&&msg.images.length>0){wireImageClicks(el,msg.images);}
-          el._editing=false;
-        }else{const err=await res.json();showError(err.error||'Failed to save');}
-      }catch(e){showError('Failed to save. Server may be offline.');}
-    }
+    }else{const err=await res.json();showError(err.error||'Failed to save');}
+  }catch(e){showError('Failed to save. Server may be offline.');}
+}
 
     function handleTouchStart(e){
       if(e.touches.length!==1){swipeTarget=null;return;}
