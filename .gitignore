@@ -1,7 +1,7 @@
 node_modules/
-messages.db
-messages.db-shm
-messages.db-wal
+messages.db*
+uploads/
+history/
 .claude/
 .superpowers/
 docs/

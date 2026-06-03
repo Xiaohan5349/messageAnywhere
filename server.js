@@ -1,12 +1,16 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const multer = require('multer');
 
 const PORT = process.env.PORT || 3000;
 
 // Init database
 const db = new Database('messages.db');
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,9 +19,41 @@ db.exec(`
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )
 `);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS images (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id    INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    filename      TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    mime_type     TEXT NOT NULL,
+    size          INTEGER NOT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const app = express();
 app.use(express.json());
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads'),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.bin';
+      cb(null, crypto.randomUUID() + ext);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }
+});
 
 // Message expiry cleanup: delete messages older than 7 days
 function cleanupExpired() {
@@ -39,8 +75,9 @@ cleanupExpired();
 // Then every hour
 setInterval(cleanupExpired, 60 * 60 * 1000);
 
-// Serve static files from public/
+// Serve static files from public/ and uploads/
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/api/messages', (req, res) => {
   const since = req.query.since ? parseInt(req.query.since, 10) : 0;
@@ -149,6 +186,17 @@ app.delete('/api/messages/:id', (req, res) => {
   }
 
   res.status(204).send();
+});
+
+// Multer error handler
+app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'image exceeds 5 MB limit' });
+  }
+  if (err.message === 'Only image files are allowed') {
+    return res.status(400).json({ error: 'only image files are allowed' });
+  }
+  next(err);
 });
 
 // Error handler
