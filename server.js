@@ -113,19 +113,12 @@ app.get('/api/messages', (req, res) => {
   res.json({ messages });
 });
 
-app.post('/api/messages', (req, res) => {
-  if (!req.body) {
-    return res.status(400).json({ error: 'request body required' });
-  }
+app.post('/api/messages', upload.any(), (req, res, next) => {
+  const isMultipart = req.files && req.files.length > 0;
+  const text = req.body ? (req.body.text || '') : '';
+  const device_name = req.body ? (req.body.device_name || '') : '';
 
-  const { text, device_name } = req.body;
-
-  if (!text || typeof text !== 'string' || text.trim().length === 0) {
-    return res.status(400).json({ error: 'text is required' });
-  }
-  if (text.length > 10000) {
-    return res.status(400).json({ error: 'text exceeds 10,000 characters' });
-  }
+  // Validate device_name (required for both paths)
   if (!device_name || typeof device_name !== 'string' || device_name.trim().length === 0) {
     return res.status(400).json({ error: 'device_name is required' });
   }
@@ -133,14 +126,56 @@ app.post('/api/messages', (req, res) => {
     return res.status(400).json({ error: 'device_name exceeds 50 characters' });
   }
 
-  const now = new Date().toISOString();
-  const stmt = db.prepare('INSERT INTO messages (text, device_name, created_at) VALUES (?, ?, ?)');
-  const result = stmt.run(text.trim(), device_name.trim(), now);
+  // JSON path (text-only, backward compat — no files attached)
+  if (!isMultipart) {
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+    if (text.length > 10000) {
+      return res.status(400).json({ error: 'text exceeds 10,000 characters' });
+    }
+    const now = new Date().toISOString();
+    const stmt = db.prepare('INSERT INTO messages (text, device_name, created_at) VALUES (?, ?, ?)');
+    const result = stmt.run(text.trim(), device_name.trim(), now);
+    return res.status(201).json({ id: result.lastInsertRowid, created_at: now, images: [] });
+  }
 
-  res.status(201).json({
-    id: result.lastInsertRowid,
-    created_at: now
+  // Multipart path (with images)
+  const trimmedText = text.trim();
+  if (!trimmedText && req.files.length === 0) {
+    return res.status(400).json({ error: 'text or images is required' });
+  }
+  if (trimmedText.length > 10000) {
+    return res.status(400).json({ error: 'text exceeds 10,000 characters' });
+  }
+
+  const now = new Date().toISOString();
+  const insertMsg = db.prepare('INSERT INTO messages (text, device_name, created_at) VALUES (?, ?, ?)');
+  const insertImg = db.prepare('INSERT INTO images (message_id, filename, original_name, mime_type, size) VALUES (?, ?, ?, ?, ?)');
+
+  const txn = db.transaction(() => {
+    const result = insertMsg.run(trimmedText, device_name.trim(), now);
+    const messageId = result.lastInsertRowid;
+    const imageRecords = [];
+    for (const file of req.files) {
+      const imgResult = insertImg.run(messageId, file.filename, file.originalname, file.mimetype, file.size);
+      imageRecords.push({
+        id: imgResult.lastInsertRowid,
+        url: '/uploads/' + file.filename,
+        original_name: file.originalname,
+        mime_type: file.mimetype,
+        size: file.size
+      });
+    }
+    return { messageId, imageRecords };
   });
+
+  try {
+    const { messageId, imageRecords } = txn();
+    res.status(201).json({ id: messageId, created_at: now, images: imageRecords });
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.put('/api/messages/:id', (req, res) => {
