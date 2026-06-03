@@ -658,8 +658,10 @@
       const text=escapeHtml(msg.text||'');
       // Image-only messages: show placeholder when no text
       const displayText=(!text&&hasImages)?'📷 Image':text;
-      const preview=truncated&&displayText.length>PREVIEW_LENGTH?displayText.slice(0,PREVIEW_LENGTH)+'...':displayText;
-      const isLong=displayText.length>PREVIEW_LENGTH;
+      // Image messages: shorter text preview (~6 words), non-image: normal 280 char limit
+      const limit=hasImages?80:PREVIEW_LENGTH;
+      const preview=truncated&&displayText.length>limit?displayText.slice(0,limit)+'...':displayText;
+      const isLong=displayText.length>limit;
       const imagesHTML=hasImages?buildImagesHTML(msg.images):'';
       const imgHint=hasImages?'<div class="msg-img-hint visible">📷 Tap to view</div>':'';
       return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(displayText?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+imgHint+'<div class="message-hint"></div></div>';
@@ -726,7 +728,9 @@
   // Text-only: copy text
   copyMessage(div,div._text||'');
 });
-      if(truncated&&typeof msg.text==='string'&&msg.text.length>PREVIEW_LENGTH){
+      const txtLen=(typeof msg.text==='string')?msg.text.length:0;
+      const effLimit=(msg.images&&msg.images.length>0)?80:PREVIEW_LENGTH;
+      if(truncated&&txtLen>effLimit){
   div.querySelector('.expand-btn').addEventListener('click',(e)=>{
     e.stopPropagation(); div._truncated=false;
     div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,false);
