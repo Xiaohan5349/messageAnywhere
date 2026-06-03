@@ -55,15 +55,55 @@ const upload = multer({
   }
 });
 
-// Message expiry cleanup: delete messages older than 7 days
+// Message expiry cleanup: archive messages older than 7 days to history/ then delete from DB
 function cleanupExpired() {
   try {
-    const result = db.prepare(
-      "DELETE FROM messages WHERE created_at < datetime('now', '-7 days')"
-    ).run();
-    if (result.changes > 0) {
-      console.log(`Expired ${result.changes} message(s)`);
+    // Query expired messages with their images
+    const expired = db.prepare(`
+      SELECT m.id, m.text, m.device_name, m.created_at,
+             i.filename, i.original_name, i.mime_type, i.size
+      FROM messages m
+      LEFT JOIN images i ON i.message_id = m.id
+      WHERE m.created_at < datetime('now', '-7 days')
+      ORDER BY m.id ASC, i.id ASC
+    `).all();
+
+    if (expired.length === 0) return;
+
+    // Group images by message
+    const byMsg = {};
+    for (const row of expired) {
+      if (!byMsg[row.id]) {
+        byMsg[row.id] = { id: row.id, text: row.text, device_name: row.device_name, created_at: row.created_at, images: [] };
+      }
+      if (row.filename) {
+        byMsg[row.id].images.push({ filename: row.filename, original_name: row.original_name, mime_type: row.mime_type, size: row.size });
+      }
     }
+
+    // Archive to history file (one file per day)
+    const today = new Date().toISOString().slice(0, 10);
+    const historyDir = path.join(__dirname, 'history');
+    if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir);
+    const logPath = path.join(historyDir, today + '.log');
+    const lines = [];
+    for (const msg of Object.values(byMsg)) {
+      lines.push('='.repeat(60));
+      lines.push(`${msg.created_at} | ${msg.device_name}`);
+      if (msg.text) lines.push(msg.text);
+      for (const img of msg.images) {
+        lines.push(`  [image: ${img.filename} — ${img.original_name}, ${img.mime_type}, ${img.size} bytes]`);
+      }
+      lines.push('='.repeat(60));
+    }
+    fs.appendFileSync(logPath, lines.join('\n') + '\n', 'utf-8');
+
+    // Delete expired messages from DB (CASCADE removes image rows, files stay on disk)
+    const ids = [...new Set(expired.map(r => r.id))];
+    const placeholders = ids.map(() => '?').join(',');
+    const result = db.prepare(`DELETE FROM messages WHERE id IN (${placeholders})`).run(...ids);
+
+    console.log(`Archived and removed ${result.changes} expired message(s) to ${logPath}`);
   } catch (err) {
     console.error('cleanupExpired failed:', err.message);
   }
