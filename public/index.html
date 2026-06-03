@@ -294,7 +294,7 @@
     .preview-item img { width: 100%; height: 100%; object-fit: cover; }
     .preview-remove { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--danger-text); color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
     .msg-images { margin-top: 5px; }
-    .msg-img-single { border-radius: 10px; max-width: 280px; max-height: 320px; cursor: pointer; display: block; }
+    .msg-img-single { border-radius: 10px; max-width: 100%; height: auto; cursor: pointer; display: block; }
     .msg-img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .msg-img-grid-item { aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; }
     .msg-img-grid-item img { width: 100%; height: 100%; object-fit: cover; }
@@ -668,14 +668,19 @@
       const previewEl=div.querySelector('.message-preview');
       if(previewEl)previewEl.style.setProperty('--preview-bg',bg);
       div.addEventListener('click',()=>{
-        if(div._editing){div._editing=false;return;}
-        let copyText=div._text||'';
-        if(div._images&&div._images.length>0){
-          const urls=div._images.map(img=>window.location.origin+img.url).join('\n');
-          copyText=copyText?copyText+'\n'+urls:urls;
-        }
-        copyMessage(div,copyText);
-      });
+  if(div._editing){div._editing=false;return;}
+  let copyText=div._text||'';
+  if(div._images&&div._images.length>0){
+    const urls=div._images.map(img=>window.location.origin+img.url).join('\n');
+    copyText=copyText?copyText+'\n'+urls:urls;
+  }
+  copyMessage(div,copyText);
+  if(div._images&&div._images.length>0&&navigator.clipboard&&navigator.clipboard.write){
+    fetch(div._images[0].url).then(r=>r.blob()).then(blob=>{
+      navigator.clipboard.write([new ClipboardItem({[blob.type]:blob})]).catch(()=>{});
+    }).catch(()=>{});
+  }
+});
       if(truncated&&typeof msg.text==='string'&&msg.text.length>PREVIEW_LENGTH){
         div.querySelector('.expand-btn').addEventListener('click',(e)=>{
           e.stopPropagation(); div._truncated=false;
@@ -882,6 +887,21 @@
     imageInput.addEventListener('change',()=>{selectedImages.push(...Array.from(imageInput.files));imageInput.value='';updatePreviewStrip();});
     deviceAttachBtn.addEventListener('click',()=>deviceImageInput.click());
     deviceImageInput.addEventListener('change',()=>{window._deviceImages.push(...Array.from(deviceImageInput.files));deviceImageInput.value='';updatePreviewStrip();});
+
+    // Paste image support
+    document.addEventListener('paste',(e)=>{
+      const active=document.activeElement;
+      if(active&&(active.closest('.edit-textarea')||active.id==='searchInput'||active.id==='deviceSearchInput'))return;
+      const items=e.clipboardData?.items;if(!items)return;
+      for(const item of items){
+        if(item.type.startsWith('image/')){
+          e.preventDefault();
+          const file=item.getAsFile();
+          if(currentView==='device-messages'){window._deviceImages.push(file);}else{selectedImages.push(file);}
+          updatePreviewStrip();
+        }
+      }
+    });
 
     // Delete
     async function deleteMessage(el,id){
