@@ -746,7 +746,7 @@
 
     function wireImageClicks(el,images){
       el.querySelectorAll('.msg-img-single, .msg-img-grid-item img').forEach(img=>{
-        img.addEventListener('click',(e)=>{e.stopPropagation();openLightbox(images,parseInt(img.dataset.imgIndex)||0);});
+        img.addEventListener('dblclick',(e)=>{e.stopPropagation();openLightbox(images,parseInt(img.dataset.imgIndex)||0);});
       });
     }
 
