@@ -295,8 +295,9 @@
     .preview-item img { width: 100%; height: 100%; object-fit: cover; }
     .preview-remove { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--danger-text); color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
     .msg-images { margin-top: 5px; }
-    .msg-images.collapsed { max-height: 150px; overflow: hidden; position: relative; }
-    .msg-images.collapsed::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, var(--preview-bg, #fff)); pointer-events: none; }
+    .msg-images.collapsed { display: none; }
+    .msg-img-hint { font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: none; }
+    .msg-img-hint.visible { display: block; }
     .msg-img-single { border-radius: 10px; max-width: 100%; height: auto; cursor: pointer; display: block; }
     .msg-img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .msg-img-grid-item { aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; }
@@ -653,11 +654,15 @@
     function relativeTime(iso){ const now=Date.now(),then=new Date(iso).getTime(),diff=Math.floor((now-then)/1000); if(diff<60)return'just now'; if(diff<3600)return Math.floor(diff/60)+'m ago'; if(diff<86400)return Math.floor(diff/3600)+'h ago'; return Math.floor(diff/86400)+'d ago'; }
 
     function buildMessageHTML(msg,truncated){
+      const hasImages=msg.images&&msg.images.length>0;
       const text=escapeHtml(msg.text||'');
-      const preview=truncated&&text.length>PREVIEW_LENGTH?text.slice(0,PREVIEW_LENGTH)+'...':text;
-      const isLong=text.length>PREVIEW_LENGTH;
-      const imagesHTML=(msg.images&&msg.images.length>0)?buildImagesHTML(msg.images):'';
-      return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(text?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+'<div class="message-hint"></div></div>';
+      // Image-only messages: show placeholder when no text
+      const displayText=(!text&&hasImages)?'📷 Image':text;
+      const preview=truncated&&displayText.length>PREVIEW_LENGTH?displayText.slice(0,PREVIEW_LENGTH)+'...':displayText;
+      const isLong=displayText.length>PREVIEW_LENGTH;
+      const imagesHTML=hasImages?buildImagesHTML(msg.images):'';
+      const imgHint=hasImages?'<div class="msg-img-hint visible">📷 Tap to view</div>':'';
+      return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(displayText?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+imgHint+'<div class="message-hint"></div></div>';
     }
 
     function createMessageEl(msg,truncated,listEl){
@@ -679,6 +684,15 @@
   if(div._images&&div._images.length>0&&!div._imagesExpanded){
     const mi=div.querySelector('.msg-images');
     if(mi){mi.classList.remove('collapsed');div._imagesExpanded=true;}
+    const hint=div.querySelector('.msg-img-hint');
+    if(hint)hint.classList.remove('visible');
+    // Also expand truncated text
+    if(div._truncated){
+      const textEl=div.querySelector('.message-text');
+      const btn=div.querySelector('.expand-btn');
+      if(textEl){textEl.classList.remove('message-preview');textEl.textContent=escapeHtml(div._text||(div._text?'':'📷 Image'));}
+      if(btn)btn.textContent='Show less';
+    }
     return;
   }
 
@@ -718,12 +732,14 @@
     div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,false);
     const p2=div.querySelector('.message-preview'); if(p2)p2.style.setProperty('--preview-bg',bg);
     const mi=div.querySelector('.msg-images');if(mi){mi.style.setProperty('--preview-bg',bg);if(div._imagesExpanded)mi.classList.remove('collapsed');}
+    const hint=div.querySelector('.msg-img-hint');if(hint&&div._imagesExpanded)hint.classList.remove('visible');
     if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
     div.querySelector('.expand-btn').addEventListener('click',(e2)=>{
       e2.stopPropagation(); div._truncated=true;
       div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,true);
       const p3=div.querySelector('.message-preview'); if(p3)p3.style.setProperty('--preview-bg',bg);
       const mi2=div.querySelector('.msg-images');if(mi2){mi2.style.setProperty('--preview-bg',bg);if(div._imagesExpanded)mi2.classList.remove('collapsed');}
+      const hint2=div.querySelector('.msg-img-hint');if(hint2&&div._imagesExpanded)hint2.classList.remove('visible');
       if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
       if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
           });
