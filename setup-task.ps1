@@ -1,7 +1,4 @@
 param(
-  [Parameter(Mandatory=$false)]
-  [int]$Port = 3000,
-
   [Parameter(Mandatory=$true)]
   [ValidateScript({Test-Path (Join-Path $_ "server.js")})]
   [string]$ProjectPath
@@ -30,7 +27,7 @@ try {
   Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force -ErrorAction Stop
 
   Write-Host "Scheduled task '$taskName' created successfully."
-  Write-Host "  Port: $Port"
+  Write-Host "  Port: 3000 (override with the PORT environment variable)"
   Write-Host "  Project: $ProjectPath"
   Write-Host "  Node: $nodePath"
   Write-Host "  Runs at: Windows logon (hidden window)"

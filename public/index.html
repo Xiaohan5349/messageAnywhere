@@ -13,7 +13,7 @@
       --accent: #7c5cbf; --accent-dim: #f0e8f8;
       --danger: #fecaca; --danger-text: #dc2626;
       --success: #22c55e; --send-bg: #22c55e;
-      --text: #1a1a2e; --text-secondary: #6b7280; --text-muted: #9ca3af;
+      --text: #1a1a2e; --text-secondary: #6b7280; --text-muted: #6b7280;
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
       --shadow-card: 0 2px 8px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
       --shadow-app: 0 12px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
@@ -74,6 +74,8 @@
     @media (min-width: 768px) { .hero-title { font-size: 26px; } }
     .hero-status { font-size: 11px; color: var(--success); font-weight: 600; margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px; }
     .hero-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+    .hero-status.offline { color: var(--danger-text); }
+    .hero-status.offline::before { background: var(--danger-text); }
 
     /* Device avatars pill */
     .hero-pill {
@@ -306,6 +308,10 @@
     .lightbox.hidden { display: none; }
     .lightbox img { max-width: 92vw; max-height: 85vh; object-fit: contain; border-radius: 4px; }
     .lightbox-close { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.15); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .lightbox-copy { position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.15); color: #fff; border: none; height: 40px; padding: 0 16px; border-radius: 20px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .lightbox-copy:hover { background: rgba(255,255,255,0.28); }
+    .lightbox-copy:disabled { opacity: 0.4; cursor: default; }
+    .lightbox-copy.copied { background: var(--success); }
     .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .lightbox-nav:disabled { opacity: 0.3; }
     .lightbox-nav.prev { left: 12px; } .lightbox-nav.next { right: 12px; }
@@ -421,6 +427,7 @@
   </div>
 
   <div class="lightbox hidden" id="lightbox">
+    <button class="lightbox-copy" id="lightboxCopy" type="button" aria-label="Copy image">Copy</button>
     <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close">&times;</button>
     <button class="lightbox-nav prev" id="lightboxPrev" type="button" aria-label="Previous image">&lsaquo;</button>
     <img id="lightboxImg" src="" alt="">
@@ -507,6 +514,8 @@
       if(view==='devices'){ refreshDeviceList(); }
     }
 
+    // Opening device A then quickly B can let A's response land in B's list.
+    let deviceRequestSeq=0;
     function showDeviceDetail(name) {
       activeDevice=name;
       deviceMsgName.textContent=name;
@@ -514,13 +523,15 @@
       document.getElementById('deviceSearchClear').classList.add('hidden');
       document.getElementById('deviceMsgInput').value='';
       switchView('device-messages');
+      const seq=++deviceRequestSeq;
       deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">Loading...</span></div>';
       fetch(API+'?device='+encodeURIComponent(name))
         .then(r=>r.json()).then(data=>{
+          if(seq!==deviceRequestSeq)return;
           deviceMessageList.innerHTML='';
           if(data.messages.length===0){ deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>'; }
           else { data.messages.forEach(msg=>{ deviceMessageList.appendChild(createMessageEl(msg,true,deviceMessageList)); }); deviceMessageList.scrollTop=deviceMessageList.scrollHeight; }
-        }).catch(()=>{ deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--danger-text)">Failed to load</span></div>'; });
+        }).catch(()=>{ if(seq!==deviceRequestSeq)return; deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--danger-text)">Failed to load</span></div>'; });
     }
 
     // Build device info from loaded messages
@@ -667,90 +678,85 @@
       return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(displayText?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+imgHint+'<div class="message-hint"></div></div>';
     }
 
+    // One place that rebuilds a message's inner HTML and re-attaches everything
+    // the rebuild destroys. Every caller used to redo this by hand, and the ones
+    // that forgot left the expand button dead after edit/cancel.
+    function renderMessage(el,msg){
+      const bg=pastelBg(msg.device_name);
+      const inner=el.querySelector('.message-inner');
+      inner.style.background=bg;
+      inner.innerHTML=buildMessageHTML(msg,el._truncated);
+      const preview=inner.querySelector('.message-preview');
+      if(preview)preview.style.setProperty('--preview-bg',bg);
+      const imgs=inner.querySelector('.msg-images');
+      if(imgs){
+        imgs.style.setProperty('--preview-bg',bg);
+        if(el._imagesExpanded)imgs.classList.remove('collapsed');
+      }
+      const hint=inner.querySelector('.msg-img-hint');
+      if(hint&&el._imagesExpanded)hint.classList.remove('visible');
+      const expandBtn=inner.querySelector('.expand-btn');
+      if(expandBtn)expandBtn.addEventListener('click',(e)=>{
+        e.stopPropagation(); el._truncated=!el._truncated; renderMessage(el,msg);
+      });
+      if(msg.images&&msg.images.length>0)wireImageClicks(el,msg.images);
+      // Only re-filter on a re-render; during initial creation the caller does it once.
+      if(el.parentElement){
+        if(el._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
+      }
+    }
+
     function createMessageEl(msg,truncated,listEl){
       const div=document.createElement('div');
       div.className='message'; div.dataset.id=msg.id;
       div._text=msg.text; div._deviceName=msg.device_name; div._createdAt=msg.created_at;
       div._images=msg.images||[];
       div._truncated=truncated; div._listEl=listEl||messageList; div._imagesExpanded=false;
-      const bg=pastelBg(msg.device_name);
-      div.innerHTML='<div class="message-inner" style="background:'+bg+'">'+buildMessageHTML(msg,truncated)+'</div>';
-      const previewEl=div.querySelector('.message-preview');
-      if(previewEl)previewEl.style.setProperty('--preview-bg',bg);
-      const msgImages=div.querySelector('.msg-images');
-      if(msgImages)msgImages.style.setProperty('--preview-bg',bg);
-      div.addEventListener('click',()=>{
-  if(div._editing){div._editing=false;return;}
+      div.innerHTML='<div class="message-inner"></div>';
+      renderMessage(div,msg);
+      div.addEventListener('click',(e)=>{
+        // A click inside the edit UI must not dismiss it; a click anywhere else
+        // while editing cancels the edit instead of just clearing the flag.
+        if(div._editing){
+          if(e.target.closest('.edit-textarea')||e.target.closest('.edit-actions'))return;
+          cancelEdit(div);
+          return;
+        }
 
-  // Image messages: toggle expand/collapse
-  if(div._images&&div._images.length>0){
-    const mi=div.querySelector('.msg-images');
-    const hint=div.querySelector('.msg-img-hint');
+        if(div._images&&div._images.length>0){
+          const mi=div.querySelector('.msg-images');
+          const hint=div.querySelector('.msg-img-hint');
+          if(!div._imagesExpanded){
+            div._imagesExpanded=true;
+            if(mi)mi.classList.remove('collapsed');
+            if(hint)hint.classList.remove('visible');
+            if(div._truncated){div._truncated=false;renderMessage(div,msg);}
+          }else{
+            div._imagesExpanded=false;
+            if(mi)mi.classList.add('collapsed');
+            if(hint)hint.classList.add('visible');
+            if(div._text&&div._text.length>80){div._truncated=true;renderMessage(div,msg);}
+          }
+          return;
+        }
 
-    if(!div._imagesExpanded){
-      // Expand: show images + full text
-      if(mi){mi.classList.remove('collapsed');div._imagesExpanded=true;}
-      if(hint)hint.classList.remove('visible');
-      if(div._truncated){
-        const textEl=div.querySelector('.message-text');
-        const btn=div.querySelector('.expand-btn');
-        if(textEl){textEl.classList.remove('message-preview');textEl.textContent=escapeHtml(div._text||'');}
-        if(btn)btn.textContent='Show less';
-        div._truncated=false;
-      }
-    }else{
-      // Collapse: hide images + truncate text
-      if(mi){mi.classList.add('collapsed');div._imagesExpanded=false;}
-      if(hint)hint.classList.add('visible');
-      if(div._text&&div._text.length>80){
-        const textEl=div.querySelector('.message-text');
-        const btn=div.querySelector('.expand-btn');
-        if(textEl){textEl.classList.add('message-preview');textEl.textContent=escapeHtml(div._text).slice(0,80)+'...';}
-        if(btn)btn.textContent='Show more';
-        div._truncated=true;
-      }
-    }
-    return;
-  }
-
-  // Text-only: copy text
-  copyMessage(div,div._text||'');
-});
-      const txtLen=(typeof msg.text==='string')?msg.text.length:0;
-      const effLimit=(msg.images&&msg.images.length>0)?80:PREVIEW_LENGTH;
-      if(truncated&&txtLen>effLimit){
-  div.querySelector('.expand-btn').addEventListener('click',(e)=>{
-    e.stopPropagation(); div._truncated=false;
-    div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,false);
-    const p2=div.querySelector('.message-preview'); if(p2)p2.style.setProperty('--preview-bg',bg);
-    const mi=div.querySelector('.msg-images');if(mi){mi.style.setProperty('--preview-bg',bg);if(div._imagesExpanded)mi.classList.remove('collapsed');}
-    const hint=div.querySelector('.msg-img-hint');if(hint&&div._imagesExpanded)hint.classList.remove('visible');
-    if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
-    div.querySelector('.expand-btn').addEventListener('click',(e2)=>{
-      e2.stopPropagation(); div._truncated=true;
-      div.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,true);
-      const p3=div.querySelector('.message-preview'); if(p3)p3.style.setProperty('--preview-bg',bg);
-      const mi2=div.querySelector('.msg-images');if(mi2){mi2.style.setProperty('--preview-bg',bg);if(div._imagesExpanded)mi2.classList.remove('collapsed');}
-      const hint2=div.querySelector('.msg-img-hint');if(hint2&&div._imagesExpanded)hint2.classList.remove('visible');
-      if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
-      if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
-          });
-          if(div._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
-        });
-      }
-      if(msg.images&&msg.images.length>0){wireImageClicks(div,msg.images);}
+        copyMessage(div,div._text||'');
+      });
       return div;
     }
 
     function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+    // escapeHtml serializes through textContent, which leaves quotes intact —
+    // not safe for values interpolated into an attribute.
+    function escapeAttr(str){ return String(str==null?'':str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     function buildImagesHTML(images){
       if(!images||images.length===0)return'';
       if(images.length===1){
-        return'<div class="msg-images collapsed"><img class="msg-img-single" src="'+escapeHtml(images[0].url)+'" alt="'+escapeHtml(images[0].original_name)+'" loading="lazy" data-img-index="0"></div>';
+        return'<div class="msg-images collapsed"><img class="msg-img-single" src="'+escapeAttr(images[0].url)+'" alt="'+escapeAttr(images[0].original_name)+'" loading="lazy" data-img-index="0"></div>';
       }
       let h='<div class="msg-images collapsed"><div class="msg-img-grid">';
-      images.forEach((img,i)=>{h+='<div class="msg-img-grid-item"><img src="'+escapeHtml(img.url)+'" alt="'+escapeHtml(img.original_name)+'" loading="lazy" data-img-index="'+i+'"></div>';});
+      images.forEach((img,i)=>{h+='<div class="msg-img-grid-item"><img src="'+escapeAttr(img.url)+'" alt="'+escapeAttr(img.original_name)+'" loading="lazy" data-img-index="'+i+'"></div>';});
       h+='</div></div>';
       return h;
     }
@@ -766,7 +772,7 @@
         const item=document.createElement('div');
         item.className='preview-item';
         const img=document.createElement('img');
-        img.src=URL.createObjectURL(file);
+        img.src=file._previewUrl=URL.createObjectURL(file);
         const rm=document.createElement('button');
         rm.className='preview-remove';rm.textContent='x';rm.type='button';
         rm.addEventListener('click',(e)=>{e.stopPropagation();
@@ -784,17 +790,71 @@
       });
     }
 
-    let lightboxImages=[],lightboxIndex=0;
+    let lightboxImages=[],lightboxIndex=0,lightboxBlobs=[];
     const lightbox=document.getElementById('lightbox');
     const lightboxImg=document.getElementById('lightboxImg');
     const lightboxCounter=document.getElementById('lightboxCounter');
+    const lightboxCopy=document.getElementById('lightboxCopy');
+
+    // ClipboardItem accepts image/png far more widely than jpeg/webp, so every
+    // copy goes through a canvas round-trip.
+    function toPng(blob){
+      return new Promise((ok,no)=>{
+        const url=URL.createObjectURL(blob);
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');
+          c.width=img.naturalWidth; c.height=img.naturalHeight;
+          c.getContext('2d').drawImage(img,0,0);
+          c.toBlob(b=>{ URL.revokeObjectURL(url); b?ok(b):no(new Error('toBlob failed')); },'image/png');
+        };
+        img.onerror=()=>{ URL.revokeObjectURL(url); no(new Error('decode failed')); };
+        img.src=url;
+      });
+    }
+
+    // Fetch starts from the user gesture that opened the lightbox, so by the time
+    // Copy is pressed the blob is warm and clipboard.write() keeps its activation.
+    function ensureBlob(i){
+      if(!lightboxBlobs[i])lightboxBlobs[i]=fetch(lightboxImages[i].url).then(r=>r.blob());
+      return lightboxBlobs[i];
+    }
+
+    function flashCopyButton(text){
+      lightboxCopy.textContent=text;
+      lightboxCopy.classList.add('copied');
+      setTimeout(()=>{ lightboxCopy.textContent='Copy'; lightboxCopy.classList.remove('copied'); },1200);
+    }
+
+    async function copyLightboxImage(){
+      // navigator.clipboard only exists in a secure context, and http://<lan-ip>
+      // is not one. Check synchronously so the fallback opens without being
+      // treated as a popup.
+      if(!(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem)){
+        const url=lightboxImages[lightboxIndex].url;
+        const w=window.open(url,'_blank');
+        if(!w)location.href=url;
+        showError('Clipboard needs HTTPS — opened the image instead. Long-press it to save or copy.');
+        return;
+      }
+      lightboxCopy.disabled=true;
+      try{
+        const png=await toPng(await ensureBlob(lightboxIndex));
+        await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);
+        flashCopyButton('✓ Copied');
+      }catch(e){
+        showError('Copy failed — long-press the image to save it instead.');
+      }finally{ lightboxCopy.disabled=false; }
+    }
+    lightboxCopy.addEventListener('click',copyLightboxImage);
 
     function openLightbox(images,index){
-      lightboxImages=images;lightboxIndex=index;
+      lightboxImages=images;lightboxIndex=index;lightboxBlobs=[];
       lightboxImg.src=images[index].url;lightboxImg.alt=images[index].original_name;
       lightboxCounter.textContent=images.length>1?`${index+1} / ${images.length}`:'';
       document.getElementById('lightboxPrev').style.display=images.length>1?'':'none';
       document.getElementById('lightboxNext').style.display=images.length>1?'':'none';
+      ensureBlob(index);
       lightbox.classList.remove('hidden');document.body.style.overflow='hidden';
     }
     function closeLightbox(){lightbox.classList.add('hidden');document.body.style.overflow='';}
@@ -802,6 +862,7 @@
       lightboxIndex=(lightboxIndex+delta+lightboxImages.length)%lightboxImages.length;
       lightboxImg.src=lightboxImages[lightboxIndex].url;lightboxImg.alt=lightboxImages[lightboxIndex].original_name;
       lightboxCounter.textContent=`${lightboxIndex+1} / ${lightboxImages.length}`;
+      ensureBlob(lightboxIndex);
     }
     document.getElementById('lightboxClose').addEventListener('click',closeLightbox);
     document.getElementById('lightboxPrev').addEventListener('click',()=>lightboxNav(-1));
@@ -845,33 +906,98 @@
     deviceSearchClear.addEventListener('click',()=>{deviceSearchInput.value='';applyDeviceSearchFilter();deviceSearchInput.focus();});
 
     // Polling
-    let polling=false;
+    let polling=false, pollFailures=0, pollCount=0;
+    const RECONCILE_EVERY=10;
+    function nearBottom(el){ return el.scrollHeight-el.scrollTop-el.clientHeight<80; }
+    const heroStatus=document.querySelector('.hero-status');
+    function setOnline(on){
+      if(!heroStatus)return;
+      heroStatus.textContent=on?'Local Network':'Offline';
+      heroStatus.classList.toggle('offline',!on);
+    }
+
+    // ?since= only ever returns new ids, so edits, deletes and expiries are
+    // invisible to every other open client. Re-align against a full fetch.
+    async function reconcileAll(){
+      try{
+        const res=await fetch(API); if(!res.ok)return;
+        const data=await res.json();
+        reconcileList(messageList,data.messages,false);
+        if(activeDevice)reconcileList(deviceMessageList,data.messages.filter(m=>m.device_name===activeDevice),true);
+        refreshDeviceList(); updateHero();
+      }catch(e){}
+    }
+
+    function reconcileList(listEl,messages,isDevice){
+      const byId=new Map(messages.map(m=>[m.id,m]));
+      // A full response is capped at 200, so "absent from the response" only
+      // means deleted inside the returned window; older ids are simply out of view.
+      const lo=messages.length?Math.min(...messages.map(m=>m.id)):0;
+      const full=messages.length<200;
+      const stick=nearBottom(listEl);
+      Array.from(listEl.querySelectorAll('.message')).forEach(el=>{
+        const id=parseInt(el.dataset.id,10);
+        if(!full&&id<lo)return;
+        const msg=byId.get(id);
+        if(!msg){el.remove();return;}
+        if(el._editing)return;
+        const changed=el._text!==msg.text||el._createdAt!==msg.created_at||
+          JSON.stringify(el._images)!==JSON.stringify(msg.images||[]);
+        if(changed){
+          el._text=msg.text; el._createdAt=msg.created_at; el._images=msg.images||[];
+          renderMessage(el,msg);
+        }
+      });
+      const existing=new Set(Array.from(listEl.querySelectorAll('.message')).map(el=>parseInt(el.dataset.id,10)));
+      const missing=messages.filter(m=>!existing.has(m.id));
+      if(missing.length){
+        clearEmptyState(listEl);
+        missing.forEach(msg=>{ listEl.appendChild(createMessageEl(msg,true,listEl)); lastId=Math.max(lastId,msg.id); });
+      }
+      const nr=listEl.querySelector('.search-empty'); if(nr)nr.remove();
+      if(listEl.querySelector('.message')===null)showEmptyState(listEl);
+      if(stick)listEl.scrollTop=listEl.scrollHeight;
+      if(isDevice)applyDeviceSearchFilter(); else applySearchFilter();
+    }
+
     async function poll(){
       if(polling)return; polling=true;
       try{
         const prevLastId=lastId; let url=API; if(lastId>0)url+='?since='+lastId;
-        const res=await fetch(url); if(!res.ok)return;
+        const res=await fetch(url); if(!res.ok)throw new Error('HTTP '+res.status);
         const data=await res.json();
+        pollFailures=0; setOnline(true);
         if(data.messages.length>0){
           clearEmptyState(messageList);
+          const stick=nearBottom(messageList);
           for(const msg of data.messages){ messageList.appendChild(createMessageEl(msg,true,messageList)); lastId=Math.max(lastId,msg.id); }
-          messageList.scrollTop=messageList.scrollHeight;
+          if(stick)messageList.scrollTop=messageList.scrollHeight;
           applySearchFilter(); refreshDeviceList(); updateHero();
         }
         if(activeDevice){
-          const dUrl=API+'?device='+encodeURIComponent(activeDevice)+'&since='+prevLastId;
+          const target=activeDevice;
+          const dUrl=API+'?device='+encodeURIComponent(target)+'&since='+prevLastId;
           const dRes=await fetch(dUrl);
-          if(dRes.ok){ const dData=await dRes.json();
-            if(dData.messages.length>0){ clearEmptyState(deviceMessageList);
+          if(dRes.ok){
+            const dData=await dRes.json();
+            if(dData.messages.length>0){
+              clearEmptyState(deviceMessageList);
+              const dStick=nearBottom(deviceMessageList);
               dData.messages.forEach(msg=>{deviceMessageList.appendChild(createMessageEl(msg,true,deviceMessageList));});
-              deviceMessageList.scrollTop=deviceMessageList.scrollHeight; applyDeviceSearchFilter();
+              if(dStick)deviceMessageList.scrollTop=deviceMessageList.scrollHeight;
+              applyDeviceSearchFilter();
             }
           }
         }
-      }catch(e){}finally{polling=false;}
+        if(++pollCount%RECONCILE_EVERY===0)reconcileAll();
+      }catch(e){
+        if(++pollFailures>=2)setOnline(false);
+      }finally{polling=false;}
     }
     poll().then(()=>{ messageList.scrollTop=messageList.scrollHeight; updateHero(); });
     setInterval(poll,POLL_INTERVAL);
+    // Coming back to the tab is the cheapest moment to re-align.
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden)reconcileAll(); });
 
     // Send — view-aware
     const messageInput=document.getElementById('messageInput');
@@ -912,9 +1038,11 @@
         }
         if(res.ok){
           inputEl.value='';
+          const sent=currentView==='device-messages'?window._deviceImages:selectedImages;
+          sent.forEach(f=>{ if(f._previewUrl)URL.revokeObjectURL(f._previewUrl); });
           if(currentView==='device-messages'){window._deviceImages=[];}else{selectedImages=[];}
           updatePreviewStrip();poll();
-        }else{const err=await res.json();showError(err.error||'Failed to send');}
+        }else{const err=await res.json().catch(()=>({}));showError(err.error||'Failed to send');}
       }catch(e){showError('Failed to send. Server may be offline.');}
       finally{btnEl.disabled=false;inputEl.focus();}
     }
@@ -944,19 +1072,38 @@
       }
     });
 
-    // Delete
+    function showEmptyState(listEl){
+      if(listEl===deviceMessageList){
+        listEl.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>';
+      }else{
+        listEl.innerHTML='<div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>';
+      }
+    }
+
+    function restoreSwipe(el){
+      const inner=el.querySelector('.message-inner');
+      if(inner){ inner.style.transition='transform 0.2s ease'; inner.style.transform='translateX(0)'; }
+      el._editing=false;
+      setTimeout(()=>el.classList.remove('swiped'),250);
+    }
+
     async function deleteMessage(el,id){
+      // Must be captured before remove() — afterwards el.parentElement is null,
+      // which used to throw here and skip the empty-state and count updates.
+      const parentList=el.parentElement;
       try{
         const res=await fetch(API+'/'+id,{method:'DELETE'});
         if(res.ok||res.status===404){
-          el.remove(); const parentList=el.parentElement; const nr=parentList.querySelector('.search-empty'); if(nr)nr.remove();
-          if(parentList.children.length===0){
-            if(parentList===deviceMessageList){ parentList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>'; }
-            else{ parentList.innerHTML='<div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>'; }
+          el.remove();
+          if(parentList){
+            const nr=parentList.querySelector('.search-empty'); if(nr)nr.remove();
+            if(parentList.children.length===0)showEmptyState(parentList);
           }
           refreshDeviceList(); updateHero();
+        }else{
+          restoreSwipe(el);
         }
-      }catch(e){}
+      }catch(e){ restoreSwipe(el); }
     }
 
     // Swipe and long-press
@@ -978,60 +1125,90 @@
       el._editing=true;
     }
     function cancelEdit(el){
-  const msg={id:parseInt(el.dataset.id),text:el._text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
-  el.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,el._truncated);
-  if(el._imagesExpanded){const mi=el.querySelector('.msg-images');if(mi)mi.classList.remove('collapsed');}
-  const bg=el.querySelector('.message-inner')?.style.background;const mi2=el.querySelector('.msg-images');if(mi2&&bg)mi2.style.setProperty('--preview-bg',bg);
-  if(msg.images&&msg.images.length>0){wireImageClicks(el,msg.images);}
-  el._editing=false;
-}
-async function saveEdit(el){
-  const ta=el.querySelector('.edit-textarea');const text=ta?ta.value.trim():'';if(!text)return;
-  try{
-    const res=await fetch(API+'/'+el.dataset.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-    if(res.ok){
-      el._text=text;const msg={id:parseInt(el.dataset.id),text:text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
-      el.querySelector('.message-inner').innerHTML=buildMessageHTML(msg,el._truncated);
-      if(el._imagesExpanded){const mi=el.querySelector('.msg-images');if(mi)mi.classList.remove('collapsed');}
-      const bg=el.querySelector('.message-inner')?.style.background;const mi2=el.querySelector('.msg-images');if(mi2&&bg)mi2.style.setProperty('--preview-bg',bg);
-      if(msg.images&&msg.images.length>0){wireImageClicks(el,msg.images);}
+      const msg={id:parseInt(el.dataset.id),text:el._text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
       el._editing=false;
-    }else{const err=await res.json();showError(err.error||'Failed to save');}
-  }catch(e){showError('Failed to save. Server may be offline.');}
-}
+      renderMessage(el,msg);
+    }
+    async function saveEdit(el){
+      const ta=el.querySelector('.edit-textarea');const text=ta?ta.value.trim():'';
+      const hasImages=el._images&&el._images.length>0;
+      if(!text&&!hasImages){showError('Message cannot be empty');return;}
+      try{
+        const res=await fetch(API+'/'+el.dataset.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+        if(res.ok){
+          el._text=text;
+          const msg={id:parseInt(el.dataset.id),text:text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
+          el._editing=false;
+          renderMessage(el,msg);
+        }else{const err=await res.json().catch(()=>({}));showError(err.error||'Failed to save');}
+      }catch(e){showError('Failed to save. Server may be offline.');}
+    }
+
+    function cancelLongPress(){ if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;} }
 
     function handleTouchStart(e){
       if(e.touches.length!==1){swipeTarget=null;return;}
       swipeTarget=e.target.closest('.message'); if(!swipeTarget||swipeTarget._editing)return;
+      // Long-pressing an image must fall through to the browser's own
+      // save/copy callout instead of opening the editor.
+      if(e.target.closest('.msg-img-single, .msg-img-grid-item img')){swipeTarget=null;return;}
       swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;swipeDeltaX=0;swiping=false;
       longPressTimer=setTimeout(()=>{if(!swiping)enterEditMode(swipeTarget);longPressTimer=null;},500);
     }
     function handleTouchMove(e){
   if(!swipeTarget)return; const dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
-  if(!swiping&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>5){swiping=true;swipeTarget.classList.add('swiped');if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
+  // A mostly-vertical drag is a scroll: it is neither a swipe nor a long press,
+  // and it must cancel the pending edit-mode timer.
+  if(!swiping&&Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){cancelLongPress();return;}
+  if(!swiping&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>5){swiping=true;swipeTarget.classList.add('swiped');cancelLongPress();}
   if(!swiping)return; e.preventDefault();
   swipeDeltaX=Math.max(-120,Math.min(0,dx)); const inner=swipeTarget.querySelector('.message-inner');
   if(inner){inner.classList.add('swiping');inner.style.transform='translateX('+swipeDeltaX+'px)';}
 }
 function handleTouchEnd(){
-  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;} if(!swipeTarget)return;
+  cancelLongPress(); if(!swipeTarget)return;
   const inner=swipeTarget.querySelector('.message-inner');
   if(inner){ inner.classList.remove('swiping');inner.style.transition='transform 0.2s ease';
     if(swipeDeltaX<-80){ swipeTarget._editing=true;inner.style.transform='translateX(-120%)'; const id=parseInt(swipeTarget.dataset.id,10); if(id)deleteMessage(swipeTarget,id); }
     else{inner.style.transform='translateX(0)';setTimeout(()=>{if(swipeTarget)swipeTarget.classList.remove('swiped');},250);}
   } swipeTarget=null;
 }
-    function handleContextMenu(e){ const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return; e.preventDefault();enterEditMode(msgEl); }
-    function handleDblClick(e){ const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return; msgEl._editing=true; const id=parseInt(msgEl.dataset.id,10); if(id)deleteMessage(msgEl,id); }
+// iOS takes over the gesture mid-scroll and never fires touchend.
+function handleTouchCancel(){
+  cancelLongPress();
+  if(swipeTarget&&swiping)restoreSwipe(swipeTarget);
+  swipeTarget=null; swiping=false; swipeDeltaX=0;
+}
+    function handleContextMenu(e){
+      const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return;
+      // Right-clicking an image belongs to the browser's own save/copy menu.
+      if(e.target.closest('.msg-img-single, .msg-img-grid-item img'))return;
+      e.preventDefault();enterEditMode(msgEl);
+    }
+    function handleDblClick(e){
+      const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return;
+      // Two reasons a double-click must not delete: images are display:none until
+      // expanded (so both clicks land on the body and read as "delete" when the
+      // user meant "show me the image"), and a double-click on a thumbnail opens
+      // the lightbox — that must not depend on wireImageClicks having stopped
+      // propagation.
+      if(msgEl._images&&msgEl._images.length>0){
+        if(!msgEl._imagesExpanded)return;
+        if(e.target.closest('.msg-img-single, .msg-img-grid-item img'))return;
+      }
+      msgEl._editing=true; const id=parseInt(msgEl.dataset.id,10); if(id)deleteMessage(msgEl,id);
+    }
 
     messageList.addEventListener('touchstart',handleTouchStart,{passive:true});
     messageList.addEventListener('touchmove',handleTouchMove,{passive:false});
     messageList.addEventListener('touchend',handleTouchEnd);
+    messageList.addEventListener('touchcancel',handleTouchCancel);
     messageList.addEventListener('contextmenu',handleContextMenu);
     messageList.addEventListener('dblclick',handleDblClick);
     deviceMessageList.addEventListener('touchstart',handleTouchStart,{passive:true});
     deviceMessageList.addEventListener('touchmove',handleTouchMove,{passive:false});
     deviceMessageList.addEventListener('touchend',handleTouchEnd);
+    deviceMessageList.addEventListener('touchcancel',handleTouchCancel);
     deviceMessageList.addEventListener('contextmenu',handleContextMenu);
     deviceMessageList.addEventListener('dblclick',handleDblClick);
   </script>
