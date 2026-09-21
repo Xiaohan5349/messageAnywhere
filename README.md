@@ -10,11 +10,13 @@ A single Node.js server runs on your Windows PC. All devices on the same WiFi op
 
 - Send text messages from any device on the same network
 - Attach up to 10 images per message (PNG, JPEG, GIF, WebP, BMP)
+- Attach up to 10 documents per message, any type, up to 50 MB each
 - Real-time sync across all open browsers (3-second polling)
 - Tap to copy any message to clipboard
 - Swipe left to delete
 - Custom device name with auto-detection (iPhone, Android, Mac, Windows PC)
 - Messages auto-expire after 7 days, archived to `history/YYYY-MM-DD.log`
+- Attachments stay on disk 30 days past their message's expiry, then are removed
 - Auto-starts on Windows login via Scheduled Task
 
 ## Working with images
@@ -35,6 +37,26 @@ Copying an image to the clipboard needs the async Clipboard API, which browsers
 only expose over HTTPS or `localhost`. On `http://<local-ip>:3000` the button
 falls back to opening the image, and the long-press menu above is the way to save
 or copy it.
+
+## Working with documents
+
+The 📄 button picks any file type. A document arrives as a card showing an
+extension badge, the original filename and its size, and stays visible — unlike
+images, there is nothing to expand.
+
+| Gesture | Result |
+|---|---|
+| Tap the card | Download it |
+| Long-press the card (mobile) | The phone's own save / share menu |
+| Right-click the card (desktop) | The browser's own save-link-as menu |
+| Swipe the message left | Delete |
+
+Documents are always delivered with `Content-Disposition: attachment`, so the
+browser never renders one in this origin — an uploaded `.html` or `.svg` cannot
+execute. Copying a document to the clipboard is not possible: that needs the same
+HTTPS-only API as above, so tap to download or use the native menu.
+
+Images and documents can be mixed freely in one message.
 
 ## Security model
 

@@ -298,6 +298,30 @@
     .preview-remove { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--danger-text); color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
     .msg-images { margin-top: 5px; }
     .msg-images.collapsed { display: none; }
+
+    /* Document attachments */
+    .msg-files { margin-top: 5px; display: flex; flex-direction: column; gap: 4px; }
+    .file-attachment {
+      display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
+      background: rgba(255,255,255,0.7); border: 1px solid var(--border);
+      border-radius: 10px; text-decoration: none; color: inherit;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .file-attachment:hover { background: #fff; transform: translateY(-1px); }
+    .file-attachment:active { transform: scale(0.99); }
+    .file-icon {
+      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: #fff; letter-spacing: 0.2px; line-height: 1;
+    }
+    .file-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .file-name {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-size { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .preview-item.file { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: var(--surface-alt); }
+    .preview-item.file .preview-ext { font-size: 9px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; }
     .msg-img-hint { font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: none; }
     .msg-img-hint.visible { display: block; }
     .msg-img-single { border-radius: 10px; max-width: 100%; height: auto; cursor: pointer; display: block; }
@@ -380,11 +404,13 @@
           <div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>
         </div>
         <input type="file" id="imageInput" accept="image/*" multiple hidden>
+        <input type="file" id="fileInput" multiple hidden>
         <div class="preview-strip hidden" id="previewStrip"></div>
         <div class="input-bar">
           <input type="text" id="messageInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
           <button id="sendBtn" type="button" aria-label="Send message">↑</button>
           <button class="attach-btn" id="attachBtn" type="button" aria-label="Attach images">📎</button>
+          <button class="attach-btn" id="fileAttachBtn" type="button" aria-label="Attach files">📄</button>
         </div>
       </div>
 
@@ -405,11 +431,13 @@
           <div class="empty-state"><span style="color:var(--text-muted)">Loading...</span></div>
         </div>
         <input type="file" id="deviceImageInput" accept="image/*" multiple hidden>
+        <input type="file" id="deviceFileInput" multiple hidden>
         <div class="preview-strip hidden" id="devicePreviewStrip"></div>
         <div class="input-bar">
           <input type="text" id="deviceMsgInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
           <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
           <button class="attach-btn" id="deviceAttachBtn" type="button" aria-label="Attach images">📎</button>
+          <button class="attach-btn" id="deviceFileAttachBtn" type="button" aria-label="Attach files">📄</button>
         </div>
       </div>
     </div>
@@ -438,6 +466,9 @@
   <script>
     const API = '/api/messages';
     const POLL_INTERVAL = 3000;
+    // Mirrors the server limits, for rejecting before the bytes leave the device.
+    const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+    const MAX_FILE_BYTES = 50 * 1024 * 1024;
     const DEVICE_KEY = 'device_name';
     const PREVIEW_LENGTH = 280;
 
@@ -664,18 +695,41 @@
 
     function relativeTime(iso){ const now=Date.now(),then=new Date(iso).getTime(),diff=Math.floor((now-then)/1000); if(diff<60)return'just now'; if(diff<3600)return Math.floor(diff/60)+'m ago'; if(diff<86400)return Math.floor(diff/3600)+'h ago'; return Math.floor(diff/86400)+'d ago'; }
 
+    function humanSize(bytes){
+      if(bytes<1024)return bytes+' B';
+      if(bytes<1048576)return (bytes/1024).toFixed(0)+' KB';
+      return (bytes/1048576).toFixed(1)+' MB';
+    }
+
+    // Documents always render expanded: the card is compact and its name and size
+    // are the useful information, so collapsing them would cost a tap.
+    function buildFilesHTML(files){
+      if(!files||files.length===0)return'';
+      let h='<div class="msg-files">';
+      files.forEach(f=>{
+        const ext=(f.original_name||'').split('.').pop().toUpperCase().slice(0,4)||'FILE';
+        h+='<a class="file-attachment" href="'+escapeAttr(f.url)+'" download="'+escapeAttr(f.original_name)+'" title="'+escapeAttr(f.original_name)+'">'
+          +'<span class="file-icon" style="background:'+avatarColor(ext)+'">'+escapeHtml(ext)+'</span>'
+          +'<span class="file-meta"><span class="file-name">'+escapeHtml(f.original_name)+'</span>'
+          +'<span class="file-size">'+escapeHtml(humanSize(f.size))+'</span></span></a>';
+      });
+      return h+'</div>';
+    }
+
     function buildMessageHTML(msg,truncated){
       const hasImages=msg.images&&msg.images.length>0;
+      const hasFiles=msg.files&&msg.files.length>0;
       const text=escapeHtml(msg.text||'');
-      // Image-only messages: show placeholder when no text
-      const displayText=(!text&&hasImages)?'📷 Image':text;
+      // Attachment-only messages: show a placeholder when there is no text
+      const displayText=(!text&&(hasImages||hasFiles))?(hasImages?'📷 Image':'📎 File'):text;
       // Image messages: shorter text preview (~6 words), non-image: normal 280 char limit
       const limit=hasImages?80:PREVIEW_LENGTH;
       const preview=truncated&&displayText.length>limit?displayText.slice(0,limit)+'...':displayText;
       const isLong=displayText.length>limit;
       const imagesHTML=hasImages?buildImagesHTML(msg.images):'';
+      const filesHTML=hasFiles?buildFilesHTML(msg.files):'';
       const imgHint=hasImages?'<div class="msg-img-hint visible">📷 Tap to view</div>':'';
-      return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(displayText?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+imgHint+'<div class="message-hint"></div></div>';
+      return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(displayText?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+filesHTML+imgHint+'<div class="message-hint"></div></div>';
     }
 
     // One place that rebuilds a message's inner HTML and re-attaches everything
@@ -711,6 +765,7 @@
       div.className='message'; div.dataset.id=msg.id;
       div._text=msg.text; div._deviceName=msg.device_name; div._createdAt=msg.created_at;
       div._images=msg.images||[];
+      div._files=msg.files||[];
       div._truncated=truncated; div._listEl=listEl||messageList; div._imagesExpanded=false;
       div.innerHTML='<div class="message-inner"></div>';
       renderMessage(div,msg);
@@ -722,6 +777,9 @@
           cancelEdit(div);
           return;
         }
+
+        // A document card is a link; let it download instead of copying the text.
+        if(e.target.closest('.file-attachment'))return;
 
         if(div._images&&div._images.length>0){
           const mi=div.querySelector('.msg-images');
@@ -761,14 +819,22 @@
       return h;
     }
 
+    // One draft bucket per view. Four parallel arrays (images and files, main and
+    // device) were already repeating themselves; this keeps them in one place.
+    const drafts={
+      'messages':{images:[],files:[]},
+      'device-messages':{images:[],files:[]}
+    };
+    function currentDraft(){ return drafts[currentView]||drafts['messages']; }
+
     function updatePreviewStrip(){
-      const isDevice=currentView==='device-messages';
-      const images=isDevice?window._deviceImages:selectedImages;
-      const strip=isDevice?devicePreviewStrip:previewStrip;
+      const draft=currentDraft();
+      const strip=currentView==='device-messages'?devicePreviewStrip:previewStrip;
       strip.innerHTML='';
-      if(images.length===0){strip.classList.add('hidden');return;}
+      const total=draft.images.length+draft.files.length;
+      if(total===0){strip.classList.add('hidden');return;}
       strip.classList.remove('hidden');
-      images.forEach((file,i)=>{
+      draft.images.forEach((file,i)=>{
         const item=document.createElement('div');
         item.className='preview-item';
         const img=document.createElement('img');
@@ -776,10 +842,25 @@
         const rm=document.createElement('button');
         rm.className='preview-remove';rm.textContent='x';rm.type='button';
         rm.addEventListener('click',(e)=>{e.stopPropagation();
-          (isDevice?window._deviceImages:selectedImages).splice(i,1);
+          draft.images.splice(i,1);
           URL.revokeObjectURL(img.src);updatePreviewStrip();
         });
         item.appendChild(img);item.appendChild(rm);
+        strip.appendChild(item);
+      });
+      draft.files.forEach((file,i)=>{
+        const item=document.createElement('div');
+        item.className='preview-item file';
+        const ext=document.createElement('span');
+        ext.className='preview-ext';
+        ext.textContent=(file.name||'').split('.').pop().slice(0,4)||'FILE';
+        const rm=document.createElement('button');
+        rm.className='preview-remove';rm.textContent='x';rm.type='button';
+        rm.addEventListener('click',(e)=>{e.stopPropagation();
+          draft.files.splice(i,1);updatePreviewStrip();
+        });
+        item.appendChild(ext);item.appendChild(rm);
+        item.title=file.name||'';
         strip.appendChild(item);
       });
     }
@@ -884,9 +965,15 @@
 
     // Search
     const searchInput=document.getElementById('searchInput'), searchClear=document.getElementById('searchClear');
+    // Document names are searchable too: searching "报告" should find the message
+    // carrying 报告.pdf, not just messages whose body text mentions it.
+    function messageMatches(m,q){
+      if(m._text.toLowerCase().includes(q))return true;
+      return (m._files||[]).some(f=>(f.original_name||'').toLowerCase().includes(q));
+    }
     function applySearchFilter(){
       const q=searchInput.value.trim().toLowerCase(), msgs=messageList.querySelectorAll('.message'); let vis=0;
-      msgs.forEach(m=>{ if(!q||m._text.toLowerCase().includes(q)){m.style.display='';vis++;}else{m.style.display='none';} });
+      msgs.forEach(m=>{ if(!q||messageMatches(m,q)){m.style.display='';vis++;}else{m.style.display='none';} });
       if(q){ searchClear.classList.remove('hidden'); const nr=messageList.querySelector('.search-empty');
         if(vis===0&&msgs.length>0){ if(!nr){const d=document.createElement('div');d.className='empty-state search-empty';d.textContent='No messages match "'+q+'"';messageList.appendChild(d);}else{nr.textContent='No messages match "'+q+'"';} }else if(nr){nr.remove();}
       }else{ searchClear.classList.add('hidden'); const nr=messageList.querySelector('.search-empty'); if(nr)nr.remove(); }
@@ -897,7 +984,7 @@
     const deviceSearchInput=document.getElementById('deviceSearchInput'), deviceSearchClear=document.getElementById('deviceSearchClear');
     function applyDeviceSearchFilter(){
       const q=deviceSearchInput.value.trim().toLowerCase(), msgs=deviceMessageList.querySelectorAll('.message'); let vis=0;
-      msgs.forEach(m=>{ if(!q||m._text.toLowerCase().includes(q)){m.style.display='';vis++;}else{m.style.display='none';} });
+      msgs.forEach(m=>{ if(!q||messageMatches(m,q)){m.style.display='';vis++;}else{m.style.display='none';} });
       if(q){ deviceSearchClear.classList.remove('hidden'); const nr=deviceMessageList.querySelector('.search-empty');
         if(vis===0&&msgs.length>0){ if(!nr){const d=document.createElement('div');d.className='empty-state search-empty';d.textContent='No messages match "'+q+'"';deviceMessageList.appendChild(d);}else{nr.textContent='No messages match "'+q+'"';} }else if(nr){nr.remove();}
       }else{ deviceSearchClear.classList.add('hidden'); const nr=deviceMessageList.querySelector('.search-empty'); if(nr)nr.remove(); }
@@ -942,9 +1029,11 @@
         if(!msg){el.remove();return;}
         if(el._editing)return;
         const changed=el._text!==msg.text||el._createdAt!==msg.created_at||
-          JSON.stringify(el._images)!==JSON.stringify(msg.images||[]);
+          JSON.stringify(el._images)!==JSON.stringify(msg.images||[])||
+          JSON.stringify(el._files)!==JSON.stringify(msg.files||[]);
         if(changed){
-          el._text=msg.text; el._createdAt=msg.created_at; el._images=msg.images||[];
+          el._text=msg.text; el._createdAt=msg.created_at;
+          el._images=msg.images||[]; el._files=msg.files||[];
           renderMessage(el,msg);
         }
       });
@@ -1006,41 +1095,55 @@
     const deviceSendBtn=document.getElementById('deviceSendBtn');
     const errorBar=document.getElementById('errorBar');
 
-    let selectedImages=[];
     const imageInput=document.getElementById('imageInput');
     const attachBtn=document.getElementById('attachBtn');
     const previewStrip=document.getElementById('previewStrip');
+    const fileInput=document.getElementById('fileInput');
+    const fileAttachBtn=document.getElementById('fileAttachBtn');
     const deviceImageInput=document.getElementById('deviceImageInput');
     const deviceAttachBtn=document.getElementById('deviceAttachBtn');
     const devicePreviewStrip=document.getElementById('devicePreviewStrip');
-    window._deviceImages=[];
+    const deviceFileInput=document.getElementById('deviceFileInput');
+    const deviceFileAttachBtn=document.getElementById('deviceFileAttachBtn');
 
     function showError(msg){ errorBar.textContent=msg; errorBar.classList.add('visible'); setTimeout(()=>errorBar.classList.remove('visible'),4000); }
+
+    // Reject before pushing bytes over the network; the server would only refuse
+    // them after the whole upload.
+    function checkDraftSize(draft){
+      const oversized=[...draft.images,...draft.files].find(f=>f.size>MAX_IMAGE_BYTES&&f.type.startsWith('image/'));
+      if(oversized)return 'images are limited to '+(MAX_IMAGE_BYTES/1048576)+' MB';
+      const big=[...draft.files].find(f=>f.size>MAX_FILE_BYTES);
+      if(big)return 'files are limited to '+(MAX_FILE_BYTES/1048576)+' MB';
+      return null;
+    }
 
     async function sendMessage(inputEl,btnEl){
       inputEl=inputEl||(currentView==='device-messages'?deviceMsgInput:messageInput);
       btnEl=btnEl||(currentView==='device-messages'?deviceSendBtn:sendBtn);
       const text=inputEl.value.trim();
-      const images=currentView==='device-messages'?window._deviceImages:selectedImages;
-      const hasImages=images.length>0;
-      if(!text&&!hasImages)return;
+      const draft=currentDraft();
+      const hasAttachments=draft.images.length>0||draft.files.length>0;
+      if(!text&&!hasAttachments)return;
+      const sizeError=checkDraftSize(draft);
+      if(sizeError){showError(sizeError);return;}
       btnEl.disabled=true;
       try{
         let res;
-        if(hasImages){
+        if(hasAttachments){
           const fd=new FormData();
           fd.append('device_name',getDeviceName());
           if(text)fd.append('text',text);
-          images.forEach(f=>fd.append('images',f));
+          draft.images.forEach(f=>fd.append('images',f));
+          draft.files.forEach(f=>fd.append('files',f));
           res=await fetch(API,{method:'POST',body:fd});
         }else{
           res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,device_name:getDeviceName()})});
         }
         if(res.ok){
           inputEl.value='';
-          const sent=currentView==='device-messages'?window._deviceImages:selectedImages;
-          sent.forEach(f=>{ if(f._previewUrl)URL.revokeObjectURL(f._previewUrl); });
-          if(currentView==='device-messages'){window._deviceImages=[];}else{selectedImages=[];}
+          draft.images.forEach(f=>{ if(f._previewUrl)URL.revokeObjectURL(f._previewUrl); });
+          draft.images=[];draft.files=[];
           updatePreviewStrip();poll();
         }else{const err=await res.json().catch(()=>({}));showError(err.error||'Failed to send');}
       }catch(e){showError('Failed to send. Server may be offline.');}
@@ -1053,9 +1156,13 @@
     deviceMsgInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')sendMessage(deviceMsgInput,deviceSendBtn); });
 
     attachBtn.addEventListener('click',()=>imageInput.click());
-    imageInput.addEventListener('change',()=>{selectedImages.push(...Array.from(imageInput.files));imageInput.value='';updatePreviewStrip();});
+    imageInput.addEventListener('change',()=>{currentDraft().images.push(...Array.from(imageInput.files));imageInput.value='';updatePreviewStrip();});
+    fileAttachBtn.addEventListener('click',()=>fileInput.click());
+    fileInput.addEventListener('change',()=>{currentDraft().files.push(...Array.from(fileInput.files));fileInput.value='';updatePreviewStrip();});
     deviceAttachBtn.addEventListener('click',()=>deviceImageInput.click());
-    deviceImageInput.addEventListener('change',()=>{window._deviceImages.push(...Array.from(deviceImageInput.files));deviceImageInput.value='';updatePreviewStrip();});
+    deviceImageInput.addEventListener('change',()=>{currentDraft().images.push(...Array.from(deviceImageInput.files));deviceImageInput.value='';updatePreviewStrip();});
+    deviceFileAttachBtn.addEventListener('click',()=>deviceFileInput.click());
+    deviceFileInput.addEventListener('change',()=>{currentDraft().files.push(...Array.from(deviceFileInput.files));deviceFileInput.value='';updatePreviewStrip();});
 
     // Paste image support
     document.addEventListener('paste',(e)=>{
@@ -1066,7 +1173,7 @@
         if(item.type.startsWith('image/')){
           e.preventDefault();
           const file=item.getAsFile();
-          if(currentView==='device-messages'){window._deviceImages.push(file);}else{selectedImages.push(file);}
+          currentDraft().images.push(file);
           updatePreviewStrip();
         }
       }
@@ -1149,9 +1256,9 @@
     function handleTouchStart(e){
       if(e.touches.length!==1){swipeTarget=null;return;}
       swipeTarget=e.target.closest('.message'); if(!swipeTarget||swipeTarget._editing)return;
-      // Long-pressing an image must fall through to the browser's own
+      // Long-pressing an attachment must fall through to the browser's own
       // save/copy callout instead of opening the editor.
-      if(e.target.closest('.msg-img-single, .msg-img-grid-item img')){swipeTarget=null;return;}
+      if(isAttachmentTarget(e.target)){swipeTarget=null;return;}
       swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;swipeDeltaX=0;swiping=false;
       longPressTimer=setTimeout(()=>{if(!swiping)enterEditMode(swipeTarget);longPressTimer=null;},500);
     }
@@ -1179,10 +1286,14 @@ function handleTouchCancel(){
   if(swipeTarget&&swiping)restoreSwipe(swipeTarget);
   swipeTarget=null; swiping=false; swipeDeltaX=0;
 }
+    // Anything the user is trying to act on directly — view an image, download a
+    // document — must not also trigger the message-level gesture.
+    function isAttachmentTarget(t){ return !!t.closest('.msg-img-single, .msg-img-grid-item img, .file-attachment'); }
+
     function handleContextMenu(e){
       const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return;
-      // Right-clicking an image belongs to the browser's own save/copy menu.
-      if(e.target.closest('.msg-img-single, .msg-img-grid-item img'))return;
+      // Right-clicking an attachment belongs to the browser's own save/copy menu.
+      if(isAttachmentTarget(e.target))return;
       e.preventDefault();enterEditMode(msgEl);
     }
     function handleDblClick(e){
@@ -1194,8 +1305,10 @@ function handleTouchCancel(){
       // propagation.
       if(msgEl._images&&msgEl._images.length>0){
         if(!msgEl._imagesExpanded)return;
-        if(e.target.closest('.msg-img-single, .msg-img-grid-item img'))return;
+        if(isAttachmentTarget(e.target))return;
       }
+      // A document card is a link; double-clicking it selects or downloads.
+      if(isAttachmentTarget(e.target))return;
       msgEl._editing=true; const id=parseInt(msgEl.dataset.id,10); if(id)deleteMessage(msgEl,id);
     }
 

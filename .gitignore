@@ -1,6 +1,7 @@
 node_modules/
 messages.db*
 uploads/
+files/
 history/
 .claude/
 .superpowers/
