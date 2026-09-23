@@ -1,1329 +1,1244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>MessageAnywhere</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --card-mint: #e8f5e0; --card-pink: #fce4ec; --card-blue: #e3f0fc;
-      --card-yellow: #fff8e1; --card-lavender: #f3e5f5;
-      --surface: #ffffff; --surface-alt: #f5f3f7; --border: #e8e5ed;
-      --accent: #7c5cbf; --accent-dim: #f0e8f8;
-      --danger: #fecaca; --danger-text: #dc2626;
-      --success: #22c55e; --send-bg: #22c55e;
-      --text: #1a1a2e; --text-secondary: #6b7280; --text-muted: #6b7280;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-card: 0 2px 8px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
-      --shadow-app: 0 12px 48px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(145deg, #f0d5f5 0%, #d5ddf8 20%, #fce4ec 45%, #d5f5e6 65%, #e8d5f5 80%, #fff4e0 100%);
-      background-attachment: fixed;
-      color: var(--text); min-height: 100vh; min-height: 100dvh;
-      display: flex; justify-content: center; align-items: center;
-      -webkit-font-smoothing: antialiased;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12101a" media="(prefers-color-scheme: dark)">
+<title>MessageAnywhere</title>
+<style>
+/* ===== Tokens — the only place colour values are written. Named by role. ===== */
+:root{
+  color-scheme:light dark;
+  --bg-base:#f2f2f7;
+  --bg-platform:#f2f2f7;
+  --bg-surface:#fff;
+  --bg-surface-raised:#fff;
+  --bg-surface-alpha:rgba(255,255,255,.72);
+  --bg-sidebar:rgba(255,255,255,.72);
+  --bg-overlay:rgba(0,0,0,.25);
+  --bg-input:rgba(120,120,128,.12);
+  --bg-lightbox:rgba(0,0,0,.92);
+  --border-subtle:rgba(60,60,67,.12);
+  --border-default:rgba(60,60,67,.22);
+  --text-primary:#000;
+  --text-secondary:rgba(60,60,67,.64);
+  --text-tertiary:rgba(60,60,67,.4);
+  --accent:#007aff;
+  --accent-hover:#0a6fe0;
+  --accent-soft:rgba(0,122,255,.10);
+  --accent-soft-strong:rgba(0,122,255,.16);
+  --accent-on:#fff;
+  --status-success:#248a3d;
+  --status-success-soft:rgba(52,199,89,.16);
+  --status-online:#34c759;
+  --status-danger:#ff3b30;
+  --status-danger-soft:rgba(255,59,48,.12);
+  --danger-on:#fff;
+  --device-1:#30b0c7;--device-2:#ff9500;--device-3:#af52de;--device-4:#5856d6;--device-5:#ff2d55;
+  --dv-mix:100%;--dv-fg:#fff;
+  --on-photo:#fff;
+  --glass-filter:blur(14px) saturate(180%);
+  --glass-edge:rgba(255,255,255,.75);
+  --glass-rim-lit:rgba(255,255,255,.95);
+  --glass-rim-shade:rgba(0,0,0,.06);
+  --glass-sheen:rgba(255,255,255,.55);
+  --edge-tint:rgba(242,242,247,.6);
+  --shadow-float:0 8px 30px rgba(0,0,0,.12),0 1px 3px rgba(0,0,0,.06);
+  --shadow-lift:0 20px 60px rgba(0,0,0,.25);
+  --bg-ambient:none;
+}
+/* Nebula Purple — values match the reference app exactly. */
+@media (prefers-color-scheme:dark){:root{
+  --bg-base:#12101a;
+  --bg-platform:#171523;
+  --bg-surface:#1c1a2a;
+  --bg-surface-raised:#1c1a28;
+  --bg-surface-alpha:rgba(30,27,44,.85);
+  --bg-sidebar:rgba(18,16,26,.92);
+  --bg-overlay:rgba(22,20,30,.86);
+  --bg-input:rgba(255,255,255,.08);
+  --bg-bubble:rgba(40,36,56,.90);
+  --bg-code-block:rgba(0,0,0,.32);
+  --bg-code-inline:rgba(255,255,255,.085);
+  --bg-lightbox:rgba(12,10,20,.95);
+  --border-subtle:rgba(196,181,253,.10);
+  --border-default:rgba(196,181,253,.18);
+  --text-primary:#f3f0fb;
+  --text-secondary:#b6a8d9;
+  --text-tertiary:#8a7cb0;
+  --accent:#8b7cf6;
+  --accent-hover:#9d90f8;
+  --accent-soft:rgba(139,124,246,.14);
+  --accent-soft-strong:rgba(139,124,246,.22);
+  --accent-on:#0d0a1c;
+  /* derived — not in the supplied palette */
+  --status-success:#7ee0b0;
+  --status-success-soft:rgba(126,224,176,.14);
+  --status-online:#7ee0b0;
+  --status-danger:#f48aa6;
+  --status-danger-soft:rgba(244,138,166,.14);
+  --danger-on:#0d0a1c;
+  --device-1:#8fd3f4;--device-2:#f5b98a;--device-3:#d8a6f5;--device-4:#a5a8f8;--device-5:#f0d98a;
+  --dv-mix:16%;--dv-fg:initial;
+  --on-photo:#f3f0fb;
+  --glass-filter:blur(12px) saturate(140%);
+  --glass-edge:var(--border-default);
+  --glass-rim-lit:rgba(243,240,251,.30);
+  --glass-rim-shade:rgba(196,181,253,.08);
+  --glass-sheen:rgba(243,240,251,.09);
+  --edge-tint:rgba(18,16,26,.55);
+  --shadow-float:0 12px 36px rgba(6,4,14,.55);
+  --shadow-lift:0 24px 60px rgba(6,4,14,.6);
+  --bg-ambient:
+    radial-gradient(1100px 620px at 82% -8%,rgba(139,124,246,.32),transparent 60%),
+    radial-gradient(820px 520px at 12% 110%,rgba(126,96,220,.16),transparent 55%),
+    radial-gradient(1300px 820px at 48% 44%,rgba(28,24,44,.5),transparent 72%),
+    linear-gradient(165deg,#18141f 0%,#120f1c 55%,#14111e 100%);
+}}
 
-    /* App shell */
-    .app {
-      width: 100%; height: 100vh; height: 100dvh;
-      display: flex; flex-direction: column;
-      background: var(--surface); position: relative; overflow: hidden;
-    }
-    @media (min-width: 520px) {
-      body { padding: 16px; }
-      .app { max-width: 440px; height: auto; min-height: 680px; max-height: 92vh; max-height: 92dvh;
-        border-radius: 28px; box-shadow: var(--shadow-app); }
-    }
-    @media (min-width: 768px) {
-      body { padding: 24px; }
-      .app { max-width: 540px; min-height: 720px; }
-    }
-    @media (min-width: 960px) {
-      body { padding: 28px; }
-      .app { max-width: 780px; min-height: 640px; max-height: 90vh; max-height: 90dvh; border-radius: 32px; }
-    }
-    @media (min-width: 1200px) {
-      body { padding: 36px; }
-      .app { max-width: 920px; min-height: 700px; }
-    }
+/* ===== Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{overflow:hidden;background-color:var(--bg-base);color:var(--text-primary);font:17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;background:none;border:0}
+input,textarea{outline:none;border:0;background:none}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ic{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+.glass{background:linear-gradient(160deg,var(--glass-sheen),transparent 55%),var(--bg-surface-alpha);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);border:1px solid var(--glass-edge);box-shadow:inset 1px 1px 0 var(--glass-rim-lit),inset -1px -1px 0 var(--glass-rim-shade),var(--shadow-float)}
 
-    /* Hero header */
-    .hero {
-      flex-shrink: 0; padding: 20px 20px 24px;
-      background: linear-gradient(160deg, #e8d5f5 0%, #d5e0f8 30%, #fce4ec 60%, #e0f5e8 100%);
-      text-align: center; position: relative; overflow: hidden;
-    }
-    @media (min-width: 520px) { .hero { padding: 24px 24px 28px; } }
-    @media (min-width: 768px) { .hero { padding: 28px 32px 32px; } }
-    .hero::before {
-      content: ''; position: absolute; top: -60px; right: -60px;
-      width: 180px; height: 180px; border-radius: 50%;
-      background: rgba(255,255,255,0.3); pointer-events: none;
-    }
-    .hero::after {
-      content: ''; position: absolute; bottom: -40px; left: -30px;
-      width: 120px; height: 120px; border-radius: 50%;
-      background: rgba(255,255,255,0.2); pointer-events: none;
-    }
-    .hero-content { position: relative; z-index: 1; }
-    .hero-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
-    @media (min-width: 768px) { .hero-title { font-size: 26px; } }
-    .hero-status { font-size: 11px; color: var(--success); font-weight: 600; margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-    .hero-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
-    .hero-status.offline { color: var(--danger-text); }
-    .hero-status.offline::before { background: var(--danger-text); }
+/* ===== Shell ===== */
+.app{height:var(--vvh,100dvh);display:grid;grid-template-columns:minmax(0,1fr);background-color:var(--bg-base);background-image:var(--bg-ambient);overflow:hidden}
+.main{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
+.scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 16px;scrollbar-width:thin;scrollbar-color:var(--border-default) transparent}
+.content{padding-bottom:12px}
 
-    /* Device avatars pill */
-    .hero-pill {
-      display: inline-flex; align-items: center; gap: 0;
-      background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-radius: 24px; padding: 6px 16px 6px 8px;
-      margin-top: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.8);
-    }
-    .hero-pill:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.10); background: #fff; }
-    .hero-pill:active { transform: scale(0.97); }
-    .hp-avatars { display: flex; align-items: center; }
-    .hp-avatar {
-      width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; color: #fff; margin-left: -8px;
-    }
-    .hp-avatar:first-child { margin-left: 0; }
-    .hp-label { font-size: 12px; font-weight: 700; color: var(--text); margin-left: 10px; white-space: nowrap; }
+/* sidebar (iPad / desktop) */
+.side{display:none;flex-direction:column;margin:12px 0 12px 12px;border-radius:26px;padding:14px 10px 12px;overflow:auto;z-index:2}
+.side.glass{background:linear-gradient(160deg,var(--glass-sheen),transparent 40%),var(--bg-sidebar)}
+.brand{font-size:22px;font-weight:700;letter-spacing:-.02em;padding:6px 10px 14px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--status-online);flex-shrink:0}
+.dot.off{background:var(--status-danger)}
+.side h3{font-size:13px;font-weight:600;color:var(--text-secondary);padding:14px 10px 6px;display:flex;justify-content:space-between}
+.si{display:flex;align-items:center;gap:11px;min-height:40px;padding:0 10px;border-radius:12px;font-size:15px;width:100%;text-align:left}
+.si:hover{background:var(--accent-soft)}
+.si[aria-current="true"]{background:var(--accent-soft-strong);box-shadow:inset 0 0 0 1px var(--border-default)}
+.si>.ic{color:var(--accent);width:19px;height:19px}
+.si .lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si .cnt{font-size:14px;color:var(--text-secondary)}
+.si .dv{width:26px;height:26px;border-radius:7px}
+.si .dv .ic{width:15px;height:15px}
+.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:var(--accent-soft);text-align:left;width:100%}
+.me .dv{width:34px;height:34px;border-radius:9px}
+.me b{display:block;font-size:15px;font-weight:600}
+.me small{font-size:12.5px;color:var(--text-secondary)}
+.me .ic.ed{margin-left:auto;color:var(--accent);width:18px}
 
-    /* Waveform decoration */
-    .hero-waveform { display: flex; gap: 3px; align-items: flex-end; justify-content: center; height: 18px; margin-top: 10px; opacity: 0.4; }
-    .hero-waveform span { width: 3px; border-radius: 2px; background: var(--accent); }
-    .hero-waveform span:nth-child(1) { height: 8px; animation: wf 1.2s ease-in-out infinite; }
-    .hero-waveform span:nth-child(2) { height: 16px; animation: wf 1.2s ease-in-out 0.15s infinite; }
-    .hero-waveform span:nth-child(3) { height: 10px; animation: wf 1.2s ease-in-out 0.3s infinite; }
-    .hero-waveform span:nth-child(4) { height: 18px; animation: wf 1.2s ease-in-out 0.45s infinite; }
-    .hero-waveform span:nth-child(5) { height: 12px; animation: wf 1.2s ease-in-out 0.6s infinite; }
-    .hero-waveform span:nth-child(6) { height: 14px; animation: wf 1.2s ease-in-out 0.75s infinite; }
-    .hero-waveform span:nth-child(7) { height: 9px; animation: wf 1.2s ease-in-out 0.9s infinite; }
-    @keyframes wf { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+/* device tile — solid in light, quiet tint in dark */
+.dv{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;background:color-mix(in srgb,var(--dc) var(--dv-mix),transparent);color:var(--dv-fg,var(--dc));box-shadow:inset 0 0 0 1px var(--border-subtle)}
+.dv .ic{width:15px;height:15px;stroke-width:2}
 
-    /* Device name edit button */
-    .hero-device-btn {
-      display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.6);
-      border: 1px solid rgba(0,0,0,0.06); color: var(--text-secondary);
-      padding: 4px 14px; border-radius: 12px; font-size: 11px; font-weight: 600;
-      cursor: pointer; font-family: inherit; transition: all 0.15s;
-    }
-    .hero-device-btn:hover { background: #fff; color: var(--accent); }
+/* scroll-edge glass + collapsing title */
+.edge{position:absolute;left:0;right:0;top:0;height:112px;z-index:4;pointer-events:none;opacity:0;transition:opacity .2s;
+  background:linear-gradient(var(--edge-tint),transparent);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);
+  -webkit-mask-image:linear-gradient(#000 40%,transparent);mask-image:linear-gradient(#000 40%,transparent)}
+.main.scrolled .edge{opacity:1}
+.nav{display:flex;align-items:center;justify-content:flex-end;gap:10px;height:56px;padding-top:8px;position:sticky;top:0;z-index:5}
+.nav .left{margin-right:auto}
+.mini{position:absolute;left:50%;top:50%;transform:translate(-50%,-30%);margin-top:4px;font-size:17px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;max-width:40%;overflow:hidden;text-overflow:ellipsis}
+.main.scrolled .mini{opacity:1;transform:translate(-50%,-50%)}
+.gbtn{height:44px;min-width:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 12px;font-size:16px;font-weight:500}
+.gbtn .ic{width:21px;height:21px}
+.gbtn.back{color:var(--accent);padding:0 14px 0 8px}
+.ggroup{display:flex;height:44px;border-radius:22px;overflow:hidden}
+.ggroup button{width:44px;display:grid;place-items:center}
+.ggroup button+button{border-left:1px solid var(--border-subtle)}
+.ggroup button[aria-expanded="true"]{color:var(--accent)}
+.big{padding:2px 4px 14px}
+.big h1{font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.1;overflow-wrap:anywhere;transition:opacity .15s}
+.main.scrolled .big h1{opacity:0}
+.big p{font-size:15px;color:var(--text-secondary);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.big p .dot{width:7px;height:7px}
+.search{display:flex;align-items:center;gap:7px;height:40px;padding:0 6px 0 10px;border-radius:14px;background:var(--bg-input);color:var(--text-secondary);margin:0 0 20px}
+.search .ic{width:18px;height:18px}
+.search input{flex:1;min-width:0;font-size:17px;color:var(--text-primary)}
+.search input::placeholder{color:var(--text-secondary)}
+.search .clear{width:22px;height:22px;border-radius:50%;background:var(--text-tertiary);color:var(--bg-base);display:grid;place-items:center}
+.search .clear .ic{width:12px;height:12px;stroke-width:3}
 
-    /* Content sheet */
-    .content-sheet {
-      flex: 1; display: flex; flex-direction: column; overflow: hidden;
-      background: var(--surface); border-top: 1px solid var(--border);
-    }
-    @media (min-width: 520px) {
-      .content-sheet { border-radius: 20px 20px 0 0; margin-top: -10px; position: relative; z-index: 2; }
-    }
+/* ===== Sections ===== */
+.sec{margin-bottom:26px}
+.sh{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px}
+.sh h2{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:baseline;gap:8px}
+.sh h2 span{font-size:15px;font-weight:500;color:var(--text-secondary)}
+.sh button{font-size:17px;color:var(--accent);display:flex;align-items:center;gap:2px}
+.sh button .ic{width:14px;height:14px;stroke-width:2.4}
+.empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:56px 20px;color:var(--text-secondary);font-size:15px}
+.empty b{font-size:20px;font-weight:600;color:var(--text-primary)}
+.empty.err b{color:var(--status-danger)}
 
-    /* Tab bar */
-    .tab-bar { display: flex; gap: 2px; padding: 10px 14px; flex-shrink: 0; background: var(--surface); justify-content: center; }
-    .tab-bar-inner { display: flex; gap: 1px; background: var(--surface-alt); border-radius: 14px; padding: 3px; border: 1px solid var(--border); }
-    .tab-btn { padding: 7px 22px; border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 12px; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
-    .tab-btn.active { background: #fff; color: var(--accent); box-shadow: var(--shadow-sm); }
-    .tab-btn:hover:not(.active) { color: var(--text); }
-    @media (min-width: 768px) { .tab-btn { padding: 7px 28px; font-size: 13px; } }
+/* message: shared by Just In cards and list rows */
+.msg{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
+.msg img,.msg a{-webkit-touch-callout:default}
+.msg.editing{-webkit-user-select:text;user-select:text;cursor:default}
+.meta{display:flex;align-items:baseline;gap:8px;font-size:14px;color:var(--text-secondary);min-width:0}
+.who{font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.who:hover{color:var(--accent)}
+.meta time{white-space:nowrap;margin-left:auto}
+.tx{font-size:17px;line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:2px}
+.tx.clamp{-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+.tx.muted{color:var(--text-secondary)}
+.more{color:var(--accent);font-size:15px;margin-top:4px}
+.reveal{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;min-height:56px;border-radius:14px;background:var(--bg-input);font-size:15px;color:var(--text-secondary)}
+.reveal .ic{width:19px}
+.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:8px;border-radius:14px;overflow:hidden;max-width:420px}
+.thumbs.one{grid-template-columns:1fr}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--bg-input);cursor:zoom-in}
+.thumbs.one img{aspect-ratio:auto;max-height:360px}
+.file{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px 8px 8px;border-radius:12px;background:var(--bg-input);color:inherit;text-decoration:none;max-width:420px}
+.file:hover{background:var(--accent-soft)}
+.doc{width:30px;height:37px;border-radius:6px;display:grid;place-items:end center;padding-bottom:4px;font-size:9px;font-weight:800;flex-shrink:0;clip-path:polygon(0 0,68% 0,100% 24%,100% 100%,0 100%);
+  background:color-mix(in srgb,var(--fc) var(--dv-mix),transparent);color:var(--dv-fg,var(--fc))}
+.file .fm{flex:1;min-width:0}
+.file b{display:block;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file small{font-size:13px;color:var(--text-secondary)}
+.file>.ic{color:var(--accent);width:24px;height:24px;stroke-width:1.7}
+.flash{position:absolute;right:12px;top:10px;display:none;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:13px;font-size:13px;font-weight:600;background:var(--status-success-soft);color:var(--status-success);pointer-events:none}
+.flash .ic{width:14px;height:14px;stroke-width:2.6}
+.msg.copied .flash{display:flex;animation:pop .22s cubic-bezier(.2,.9,.3,1.3)}
+.msg.copied .meta time{visibility:hidden}
+.edit textarea{width:100%;min-height:84px;margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--bg-input);font-size:17px;line-height:1.35;resize:vertical;color:var(--text-primary);box-shadow:0 0 0 2px var(--accent)}
+.edit .acts{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
+.edit .acts small{margin-right:auto;font-size:12.5px;color:var(--text-secondary)}
+.pill{height:34px;padding:0 16px;border-radius:17px;display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;background:var(--bg-input);color:var(--accent)}
+.pill.fill{background:var(--accent);color:var(--accent-on)}
+.pill.fill:hover{background:var(--accent-hover)}
 
-    /* Detail header (device messages) */
-    .detail-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .back-btn { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text); padding: 5px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.15s; }
-    .back-btn:hover { background: #fff; }
-    .detail-name { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; }
+/* Just In carousel */
+.just{display:grid;grid-auto-flow:column;grid-auto-columns:82%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px;scroll-padding:0 16px;align-items:start}
+.card{scroll-snap-align:start;display:flex;flex-direction:column;padding:14px 16px 16px;border-radius:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);min-height:132px}
+.card .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.card .meta{flex:1}
+.card .tx{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+.card .tx.muted,.card .tx.body{font-weight:400;font-size:17px;letter-spacing:-.01em;line-height:1.35}
 
-    /* Search */
-    .search-bar { padding: 6px 14px 8px; flex-shrink: 0; display: flex; gap: 6px; align-items: center; }
-    .search-bar input { flex: 1; padding: 9px 14px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-size: 13px; outline: none; font-family: inherit; transition: all 0.2s; }
-    .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,191,0.08); background: #fff; }
-    .search-bar input::placeholder { color: var(--text-muted); }
-    .search-clear { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; white-space: nowrap; padding: 4px 8px; font-family: inherit; font-weight: 600; }
+/* list rows */
+.list{border-radius:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);overflow:hidden}
+.li{position:relative}
+.li+.li::before{content:"";position:absolute;top:0;right:0;left:54px;height:1px;background:var(--border-subtle);z-index:1}
+.li-in{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:var(--bg-surface);transition:transform .2s ease;position:relative}
+.li-in .dv{margin-top:1px}
+.li-in .m{flex:1;min-width:0}
+.li.swiped{background:var(--status-danger)}
+.li.swiped::after{content:"Delete";position:absolute;right:0;top:0;bottom:0;width:90px;display:grid;place-items:center;color:var(--danger-on);font-size:15px;font-weight:600}
+.li.msg:hover .li-in{background:var(--accent-soft)}
+.list .li.msg:hover .li-in{background:color-mix(in srgb,var(--accent) 6%,var(--bg-surface))}
+.frow{display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;color:inherit;text-decoration:none;position:relative;background:var(--bg-surface)}
+.frow+.frow::before{content:"";position:absolute;top:0;right:0;left:60px;height:1px;background:var(--border-subtle)}
+.frow:hover{background:color-mix(in srgb,var(--accent) 6%,var(--bg-surface))}
+.frow .doc{width:34px;height:42px;font-size:9.5px;padding-bottom:5px}
+.frow .fm{flex:1;min-width:0}
+.frow b{display:block;font-size:17px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow small{font-size:14px;color:var(--text-secondary)}
+.frow>.ic{color:var(--accent);width:26px;height:26px;stroke-width:1.7}
 
-    /* Views */
-    .view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
-    .view.active { display: flex; }
+/* photo grid */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border-radius:24px;overflow:hidden}
+.ph{position:relative;aspect-ratio:1;display:block;overflow:hidden;background:var(--bg-input)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph::after{content:"";position:absolute;inset:55% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.45));pointer-events:none}
+.ph span{position:absolute;left:8px;bottom:6px;z-index:1;font-size:12px;font-weight:600;color:var(--on-photo);text-shadow:0 1px 3px rgba(0,0,0,.5)}
 
-    /* Message list */
-    .message-list { flex: 1; overflow-y: auto; padding: 6px 14px; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
-    .message { position: relative; border-radius: 14px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-    .message.swiped { overflow: hidden; background: var(--danger); }
-    .message-inner { padding: 8px 10px 8px 8px; cursor: pointer; transition: transform 0.2s ease; position: relative; border-radius: 14px; display: flex; gap: 8px; align-items: flex-start; }
-    .message-inner.swiping { transition: none; }
-    .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; line-height: 1; letter-spacing: 0; }
-    .msg-body { flex: 1; min-width: 0; }
-    .message-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; margin-bottom: 1px; }
-    .msg-author { font-weight: 700; color: var(--text); font-size: 12px; }
-    .msg-time { font-size: 10px; color: var(--text-muted); }
-    .message-text { font-size: 13px; color: var(--text); word-break: break-word; white-space: pre-wrap; line-height: 1.45; }
-    .message-preview { max-height: 130px; overflow: hidden; position: relative; }
-    .message-preview::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: linear-gradient(transparent, var(--preview-bg, #fff)); }
-    .expand-btn { display: block; background: none; border: none; color: var(--accent); font-size: 11px; padding: 3px 0 0; cursor: pointer; font-family: inherit; font-weight: 700; }
-    .expand-btn:hover { opacity: 0.8; }
-    .message-hint { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
-    .message.copied .message-hint { color: var(--success); font-weight: 600; }
+/* ===== Bottom: docked composer + tab bar ===== */
+.bottom{flex-shrink:0;padding:8px 12px calc(6px + env(safe-area-inset-bottom));background:var(--bg-surface-alpha);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);border-top:1px solid var(--border-subtle)}
+.composer{margin-bottom:6px}
+.att{display:flex;align-items:center;gap:10px;padding:6px 4px 10px;overflow-x:auto;scrollbar-width:none}
+.att .item{position:relative;width:48px;height:48px;border-radius:12px;flex-shrink:0;background:var(--bg-input);display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--text-secondary);text-transform:uppercase}
+.att img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.att .x{position:absolute;top:-5px;right:-5px;width:22px;height:22px;border-radius:50%;background:var(--text-tertiary);color:var(--bg-base);display:grid;place-items:center;border:2px solid var(--bg-base)}
+.att .x .ic{width:10px;height:10px;stroke-width:3.2}
+.att small{font-size:13px;color:var(--text-secondary);white-space:nowrap}
+.crow{display:flex;align-items:flex-end;gap:4px}
+.ib{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--text-primary);flex-shrink:0}
+.ib:hover{background:var(--accent-soft)}
+.field{flex:1;min-width:0;display:flex;align-items:flex-end;min-height:40px;padding:0 4px 0 14px;border-radius:20px;background:var(--bg-input);border:1px solid var(--border-default);transition:border-color .15s,box-shadow .15s}
+.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft-strong)}
+.field textarea{flex:1;min-width:0;resize:none;font-size:17px;line-height:22px;padding:8px 0;max-height:140px;color:var(--text-primary);display:block}
+.field textarea::placeholder{color:var(--text-secondary)}
+.send{width:32px;height:32px;margin:3px 0;border-radius:16px;display:grid;place-items:center;background:var(--accent);color:var(--accent-on);flex-shrink:0}
+.send:hover{background:var(--accent-hover)}
+.send:disabled{opacity:.45}
+.send .ic{width:19px;height:19px;stroke-width:2.6}
+.kbhint{display:none;visibility:hidden;gap:14px;flex-wrap:wrap;padding:8px 2px 0 88px;font-size:12.5px;color:var(--text-secondary)}
+.kbhint kbd{font:500 11.5px inherit;font-family:inherit;padding:1px 6px;border-radius:5px;background:var(--bg-input);color:var(--text-primary)}
+.tabbar{display:flex;align-items:center;margin:0 -12px;padding:0 12px;border-top:1px solid var(--border-subtle)}
+.tabs{flex:1;display:flex;height:52px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--text-secondary)}
+.tab .ic{width:23px;height:23px}
+.tab[aria-current="true"]{color:var(--accent)}
+.sbtn{width:52px;height:52px;display:grid;place-items:center;color:var(--text-secondary)}
+.sbtn .ic{width:24px;height:24px}
 
-    /* Edit */
-    .edit-textarea { width: 100%; padding: 8px 10px; background: var(--surface-alt); border: 2px solid var(--accent); border-radius: 10px; color: var(--text); font-size: 13px; font-family: inherit; resize: vertical; outline: none; line-height: 1.45; }
-    .edit-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
-    .edit-actions button { padding: 5px 14px; border-radius: 16px; font-size: 12px; cursor: pointer; border: none; font-weight: 700; font-family: inherit; transition: all 0.15s; }
-    .btn-edit-save { background: var(--accent); color: #fff; }
-    .btn-edit-save:hover { opacity: 0.9; }
-    .btn-edit-cancel { background: var(--surface-alt); color: var(--text-secondary); border: 1px solid var(--border); }
+/* ===== Overlays ===== */
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{transform:scale(.92);opacity:0}}
+@keyframes up{from{transform:translateY(40px)}}
+.toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);padding:10px 16px;border-radius:18px;font-size:14px;font-weight:500;color:var(--status-danger);animation:pop .22s cubic-bezier(.2,.9,.3,1.2)}
+.toast .ic{width:18px;height:18px}
+.layer{position:fixed;inset:0;z-index:50}
+.scrim{position:absolute;inset:0;background:var(--bg-overlay);animation:fade .18s ease-out}
+.scrim.blur{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.scrim.clear{background:transparent}
+.menu{position:absolute;width:260px;border-radius:20px;overflow:hidden;animation:pop .22s cubic-bezier(.2,.9,.3,1.2);transform-origin:top right}
+.menu.glass{box-shadow:inset 1px 1px 0 var(--glass-rim-lit),inset -1px -1px 0 var(--glass-rim-shade),var(--shadow-lift)}
+.mi{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:46px;padding:8px 16px;font-size:17px;text-align:left}
+.mi+.mi{border-top:1px solid var(--border-subtle)}
+.mi:hover,.mi:focus-visible{background:var(--accent-soft);outline:0}
+.mi .ic{width:19px;height:19px}
+.mi.red{color:var(--status-danger)}
+.mi .lab{display:flex;flex-direction:column;min-width:0}
+.mi .lab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi small{font-size:13px;color:var(--text-secondary)}
+.mi .dv{width:24px;height:24px;border-radius:7px}
+.mi .dv .ic{width:14px;height:14px}
+.mgap{height:8px;background:var(--border-subtle)}
+.ctx{position:absolute;left:50%;top:16%;width:min(340px,calc(100% - 32px));transform:translateX(-50%)}
+.ctx .preview{padding:14px 16px;border-radius:22px;background:var(--bg-surface-raised);border:1px solid var(--border-default);box-shadow:var(--shadow-lift);animation:pop .26s cubic-bezier(.2,.9,.3,1.2)}
+.ctx .preview .tx{font-size:18px;font-weight:600;max-height:120px;overflow:hidden}
+.ctx .menu{position:relative;margin-top:10px;width:250px;transform-origin:top left}
+.ctx.at .menu{margin-top:0}
+.sheet{position:absolute;left:0;right:0;bottom:0;padding:8px 16px calc(24px + env(safe-area-inset-bottom));border-radius:34px 34px 0 0;animation:up .32s cubic-bezier(.2,.9,.25,1)}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--text-tertiary);margin:0 auto 10px}
+.sbar{display:flex;align-items:center;justify-content:space-between;height:44px;margin-bottom:14px}
+.sbar h3{font-size:17px;font-weight:600}
+.sbar .gbtn{height:40px;min-width:40px;padding:0 16px}
+.sbar .done{background:var(--accent);color:var(--accent-on);font-weight:600}
+.namefield{display:flex;align-items:center;height:52px;padding:0 12px 0 16px;border-radius:16px;background:var(--bg-input);border:1px solid var(--border-default)}
+.namefield:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft-strong)}
+.namefield input{flex:1;min-width:0;font-size:17px;color:var(--text-primary)}
+.sheet .foot{font-size:13px;color:var(--text-secondary);padding:8px 16px 0}
+.lb{position:fixed;inset:0;z-index:60;background:var(--bg-lightbox);display:flex;align-items:center;justify-content:center;animation:fade .18s ease-out}
+.lb img{max-width:92vw;max-height:84vh;object-fit:contain;border-radius:6px;animation:pop .24s cubic-bezier(.2,.9,.3,1.1)}
+.lb .gbtn{position:absolute;color:var(--text-primary)}
+.lb .close{top:calc(14px + env(safe-area-inset-top));right:14px}
+.lb .copy{top:calc(14px + env(safe-area-inset-top));left:14px;padding:0 16px}
+.lb .copy.done{color:var(--status-success)}
+.lb .prev{left:12px;top:50%;margin-top:-22px}
+.lb .next{right:12px;top:50%;margin-top:-22px}
+.lb .count{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:16px;font-size:14px;color:var(--text-primary)}
 
-    /* Input bar */
-    .input-bar { display: flex; gap: 8px; padding: 8px 14px; padding-bottom: max(8px, env(safe-area-inset-bottom)); flex-shrink: 0; background: rgba(255,255,255,0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--border); align-items: center; }
-    .input-bar input { flex: 1; padding: 10px 16px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 20px; color: var(--text); font-size: 13px; outline: none; font-family: inherit; transition: all 0.2s; min-width: 0; }
-    .input-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,191,0.08); background: #fff; }
-    .input-bar input::placeholder { color: var(--text-muted); }
-    .input-bar button { background: var(--send-bg); color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; min-width: 40px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(34,197,94,0.25); }
-    .input-bar button:hover { background: #16a34a; transform: scale(1.05); }
-    .input-bar button:active { transform: scale(0.95); }
-    .input-bar button:disabled { opacity: 0.4; transform: none; }
-
-    /* Error */
-    .error-bar { padding: 6px 14px; background: #fef2f2; color: var(--danger-text); font-size: 11px; text-align: center; display: none; flex-shrink: 0; border-bottom: 1px solid var(--danger); font-weight: 600; }
-    .error-bar.visible { display: block; }
-
-    /* Empty state */
-    .empty-state { text-align: center; color: var(--text-muted); padding: 32px 16px; font-size: 13px; line-height: 1.6; }
-
-    /* Device list (grid) */
-    .device-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 16px; -webkit-overflow-scrolling: touch; }
-    @media (min-width: 768px) { .device-list { padding: 14px 18px; } }
-
-    /* Section headings */
-    .section-heading { font-size: 13px; font-weight: 800; color: var(--text); padding: 0 2px; letter-spacing: -0.1px; }
-    .section-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
-
-    /* Device cards grid */
-    .device-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    @media (min-width: 520px) { .device-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 768px) { .device-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
-    @media (min-width: 960px) { .device-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (min-width: 1200px) { .device-grid { grid-template-columns: repeat(4, 1fr); } }
-
-    .device-card {
-      border-radius: 16px; padding: 14px; cursor: pointer; transition: all 0.2s;
-      box-shadow: var(--shadow-card); display: flex; gap: 10px; align-items: flex-start;
-      border: 1px solid rgba(0,0,0,0.04); position: relative; overflow: hidden;
-    }
-    .device-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.10); }
-    .device-card:active { transform: scale(0.98); }
-    .device-card::after {
-      content: ''; position: absolute; top: -18px; right: -18px;
-      width: 64px; height: 64px; border-radius: 50%;
-      background: rgba(255,255,255,0.5); pointer-events: none;
-    }
-    .dc-avatar {
-      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff; position: relative; z-index: 1;
-    }
-    .dc-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
-    .dc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-    .dc-name { font-size: 14px; font-weight: 800; color: var(--text); }
-    .dc-badge { font-size: 10px; color: var(--accent); font-weight: 700; background: rgba(124,92,191,0.1); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
-    .dc-preview { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
-    .dc-footer { display: flex; justify-content: space-between; align-items: center; }
-    .dc-time { font-size: 10px; color: var(--text-muted); }
-    .dc-waveform { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
-    .dc-waveform span { width: 2px; border-radius: 1px; background: var(--accent); opacity: 0.4; }
-    .dc-waveform span:nth-child(1) { height: 5px; } .dc-waveform span:nth-child(2) { height: 12px; } .dc-waveform span:nth-child(3) { height: 7px; } .dc-waveform span:nth-child(4) { height: 14px; }
-
-    /* Recent activity */
-    .recent-section { padding: 0; }
-    .recent-card {
-      display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
-      border-radius: 14px; cursor: pointer; transition: all 0.15s;
-      border: 1px solid transparent; background: var(--surface-alt);
-    }
-    .recent-card:hover { background: #fff; border-color: var(--border); box-shadow: var(--shadow-sm); }
-    .recent-card:active { transform: scale(0.98); }
-    .rc-avatar {
-      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: #fff;
-    }
-    .rc-body { flex: 1; min-width: 0; }
-    .rc-header { display: flex; justify-content: space-between; align-items: baseline; }
-    .rc-name { font-size: 12px; font-weight: 700; color: var(--text); }
-    .rc-time { font-size: 10px; color: var(--text-muted); }
-    .rc-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-    .recent-list { display: flex; flex-direction: column; gap: 6px; }
-
-    /* Quick actions */
-    .quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    @media (min-width: 520px) { .quick-actions { grid-template-columns: repeat(3, 1fr); } }
-    .qa-card {
-      display: flex; align-items: center; gap: 8px; padding: 12px 14px;
-      border-radius: 14px; cursor: pointer; transition: all 0.15s;
-      border: 1px solid rgba(0,0,0,0.04); background: var(--surface-alt);
-      font-family: inherit; font-size: 12px; font-weight: 700; color: var(--text);
-      box-shadow: var(--shadow-sm);
-    }
-    .qa-card:hover { background: #fff; border-color: var(--border); box-shadow: var(--shadow-card); transform: translateY(-1px); }
-    .qa-card:active { transform: scale(0.97); }
-    .qa-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
-    .qa-label { flex: 1; text-align: left; }
-
-    /* Modal */
-    .device-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 20; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-    .device-modal.hidden { display: none; }
-    .device-modal-box { background: #fff; padding: 24px 20px; border-radius: 20px; width: 90%; max-width: 320px; box-shadow: var(--shadow-app); }
-    .device-modal-box h3 { font-size: 16px; font-weight: 800; margin-bottom: 14px; text-align: center; color: var(--text); }
-    .device-modal-box input { width: 100%; padding: 10px 14px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 14px; outline: none; margin-bottom: 14px; font-family: inherit; transition: all 0.2s; }
-    .device-modal-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,191,0.08); background: #fff; }
-    .device-modal-box .actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .device-modal-box button { padding: 8px 20px; border-radius: 16px; font-size: 13px; cursor: pointer; border: none; font-weight: 700; font-family: inherit; transition: all 0.15s; }
-    .btn-cancel { background: var(--surface-alt); color: var(--text-secondary); }
-    .btn-cancel:hover { background: #eee; }
-    .btn-save { background: var(--accent); color: #fff; }
-    .btn-save:hover { opacity: 0.9; }
-
-    /* Image support */
-    .attach-btn { background: none; border: 1px solid var(--border); color: var(--text-secondary); width: 40px; height: 40px; border-radius: 50%; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
-    .attach-btn:hover { background: var(--surface-alt); color: var(--accent); }
-    .preview-strip { display: flex; gap: 6px; padding: 0 14px 6px; flex-shrink: 0; overflow-x: auto; }
-    .preview-strip.hidden { display: none; }
-    .preview-item { position: relative; width: 52px; height: 52px; border-radius: 10px; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
-    .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-    .preview-remove { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--danger-text); color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
-    .msg-images { margin-top: 5px; }
-    .msg-images.collapsed { display: none; }
-
-    /* Document attachments */
-    .msg-files { margin-top: 5px; display: flex; flex-direction: column; gap: 4px; }
-    .file-attachment {
-      display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
-      background: rgba(255,255,255,0.7); border: 1px solid var(--border);
-      border-radius: 10px; text-decoration: none; color: inherit;
-      transition: background 0.15s, transform 0.15s;
-    }
-    .file-attachment:hover { background: #fff; transform: translateY(-1px); }
-    .file-attachment:active { transform: scale(0.99); }
-    .file-icon {
-      width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 9px; font-weight: 800; color: #fff; letter-spacing: 0.2px; line-height: 1;
-    }
-    .file-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-    .file-name {
-      font-size: 12px; font-weight: 600; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .file-size { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
-    .preview-item.file { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: var(--surface-alt); }
-    .preview-item.file .preview-ext { font-size: 9px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; }
-    .msg-img-hint { font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: none; }
-    .msg-img-hint.visible { display: block; }
-    .msg-img-single { border-radius: 10px; max-width: 100%; height: auto; cursor: pointer; display: block; }
-    .msg-img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-    .msg-img-grid-item { aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; }
-    .msg-img-grid-item img { width: 100%; height: 100%; object-fit: cover; }
-    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-    .lightbox.hidden { display: none; }
-    .lightbox img { max-width: 92vw; max-height: 85vh; object-fit: contain; border-radius: 4px; }
-    .lightbox-close { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.15); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .lightbox-copy { position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.15); color: #fff; border: none; height: 40px; padding: 0 16px; border-radius: 20px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-    .lightbox-copy:hover { background: rgba(255,255,255,0.28); }
-    .lightbox-copy:disabled { opacity: 0.4; cursor: default; }
-    .lightbox-copy.copied { background: var(--success); }
-    .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .lightbox-nav:disabled { opacity: 0.3; }
-    .lightbox-nav.prev { left: 12px; } .lightbox-nav.next { right: 12px; }
-    .lightbox-counter { color: #fff; font-size: 12px; margin-top: 12px; opacity: 0.7; }
-
-    /* Utility */
-    .hidden { display: none !important; }
-
-    /* Focus */
-    .tab-btn:focus-visible, .back-btn:focus-visible, .input-bar button:focus-visible, .btn-cancel:focus-visible, .btn-save:focus-visible, .search-clear:focus-visible, .expand-btn:focus-visible, .device-card:focus-visible, .recent-card:focus-visible, .qa-card:focus-visible, .hero-pill:focus-visible, .hero-device-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-    /* Responsive refinements */
-    @media (max-width: 360px) {
-      .hero { padding: 14px 14px 18px; } .hero-title { font-size: 18px; }
-      .device-card { padding: 10px; gap: 8px; } .dc-name { font-size: 13px; }
-      .dc-avatar { width: 28px; height: 28px; font-size: 12px; }
-      .msg-avatar { width: 24px; height: 24px; font-size: 11px; }
-      .message-inner { padding: 6px 8px 6px 6px; gap: 6px; } .message-text { font-size: 12px; }
-      .input-bar { padding: 6px 10px; gap: 6px; } .input-bar input { padding: 8px 12px; font-size: 12px; }
-      .input-bar button { width: 36px; height: 36px; min-width: 36px; font-size: 15px; }
-      .tab-btn { padding: 5px 14px; font-size: 11px; }
-    }
-  </style>
+/* ===== Wide: iPad / desktop ===== */
+@media (min-width:900px){
+  .app{grid-template-columns:300px minmax(0,1fr)}
+  .side{display:flex}
+  .tabbar,.ph-only{display:none!important}
+  .scroll{padding:0 36px}
+  .content{max-width:980px;margin:0 auto}
+  .bottom{padding:12px 36px 16px}
+  .composer{max-width:980px;margin:0 auto}
+  .kbhint{display:flex}
+  body.typing .kbhint{visibility:visible}
+  .grid{grid-template-columns:repeat(6,1fr)}
+  .grid.all{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .just{grid-auto-columns:minmax(280px,1fr);margin:0;padding:0 0 4px}
+  .sheet{left:50%;bottom:auto;top:50%;width:460px;transform:translate(-50%,-50%);border-radius:30px;animation:pop .26s cubic-bezier(.2,.9,.3,1.1);padding-bottom:24px}
+  .grab{display:none}
+  .li.msg .li-in{padding-right:96px}
+}
+@media (max-width:899px){
+  .ggroup button{width:40px}
+  .mini{font-size:16px}
+  body.typing .tabbar{display:none}
+  body.typing .bottom{padding-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-  <div class="app" id="appContainer">
-    <!-- Hero header (hidden on device detail) -->
-    <div class="hero" id="mainHeader">
-      <div class="hero-content">
-        <div class="hero-title">MessageAnywhere</div>
-        <div class="hero-status">Local Network</div>
-        <div class="hero-pill" id="heroPill" title="View connected devices">
-          <div class="hp-avatars" id="heroAvatars"></div>
-          <span class="hp-label" id="heroPillLabel">No devices</span>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-tray" viewBox="0 0 24 24"><path d="M3 13l2.5-7.5A2 2 0 0 1 7.4 4h9.2a2 2 0 0 1 1.9 1.5L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-8z"/><path d="M8 8h8M8 11.5h5"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M21 15.5l-4.5-4.5L7 20"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15 7.2"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/><circle cx="18.5" cy="12" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v8M8.5 12.5l3.5 3.5 3.5-3.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3l9-16zM12 10v4M12 17.5v.5"/></symbol>
+  <symbol id="i-devices" viewBox="0 0 24 24"><rect x="3" y="4" width="13" height="10" rx="1.5"/><path d="M6 18h7"/><rect x="17" y="8" width="5" height="11" rx="1.2"/></symbol>
+  <symbol id="i-iphone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 5h2"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4.5" y="5" width="15" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></symbol>
+  <symbol id="i-desktop" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+  <symbol id="i-ipad" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M11 18h2"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="side glass" aria-label="Library and devices">
+    <div class="brand"><span class="dot" id="sideDot"></span>MessageAnywhere</div>
+    <nav id="sideTabs"></nav>
+    <h3>Devices <span class="num" id="sideDevCount"></span></h3>
+    <nav id="sideDevices"></nav>
+    <button class="me" id="meCard" type="button"></button>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="edge" aria-hidden="true"></div>
+    <div class="toast glass" id="toast" role="status" aria-live="polite" hidden></div>
+    <div class="scroll" id="scroll">
+      <div class="content">
+        <div class="nav">
+          <button class="gbtn glass left ph-only" id="meBtn" type="button" aria-label="Rename this device"></button>
+          <button class="gbtn glass back left" id="backBtn" type="button" hidden><svg class="ic"><use href="#i-left"/></svg>All Devices</button>
+          <span class="mini" id="mini"></span>
+          <div class="ggroup glass">
+            <button id="refreshBtn" type="button" aria-label="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
+            <button id="filterBtn" type="button" aria-label="Filter by device" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-filter"/></svg></button>
+            <button id="moreBtn" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-more"/></svg></button>
+          </div>
         </div>
-        <div class="hero-waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-        <button class="hero-device-btn" id="deviceBtn" type="button">Device</button>
+        <div class="big"><h1 id="title">Everything</h1><p><span class="dot" id="statusDot"></span><span id="status">Local network</span><span id="subtitle"></span></p></div>
+        <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="search" type="text" placeholder="Text, photos and file names" autocomplete="off" enterkeyhint="search" aria-label="Search"><button class="clear" id="searchClear" type="button" aria-label="Clear search" hidden><svg class="ic"><use href="#i-x"/></svg></button></label>
+        <div id="view"><div class="empty">Loading…</div></div>
       </div>
     </div>
 
-    <!-- Device detail header (visible only on device detail) -->
-    <div class="detail-header hidden" id="deviceMsgHeader">
-      <button class="back-btn" id="deviceBackBtn" type="button">← Back</button>
-      <span class="detail-name" id="deviceMsgName"></span>
+    <div class="bottom">
+      <div class="composer">
+        <div class="att" id="att" hidden></div>
+        <div class="crow">
+          <button class="ib" id="attachImg" type="button" aria-label="Attach photos"><svg class="ic"><use href="#i-photo"/></svg></button>
+          <button class="ib" id="attachFile" type="button" aria-label="Attach files"><svg class="ic"><use href="#i-clip"/></svg></button>
+          <div class="field"><textarea id="input" rows="1" maxlength="10000" placeholder="Send to all devices" enterkeyhint="send" aria-label="Message"></textarea><button class="send" id="sendBtn" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div>
+        </div>
+        <div class="kbhint"><span><kbd>Enter</kbd> send</span><span><kbd>Shift</kbd> + <kbd>Enter</kbd> new line</span><span><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> paste image</span><span><kbd>/</kbd> search</span></div>
+      </div>
+      <nav class="tabbar" aria-label="Sections">
+        <div class="tabs" id="tabs"></div>
+        <button class="sbtn" id="searchTab" type="button" aria-label="Search"><svg class="ic"><use href="#i-search"/></svg></button>
+      </nav>
     </div>
+    <input type="file" id="imgInput" accept="image/*" multiple hidden>
+    <input type="file" id="fileInput" multiple hidden>
+  </main>
+</div>
 
-    <div class="error-bar" id="errorBar"></div>
-
-    <!-- Content sheet -->
-    <div class="content-sheet">
-      <!-- Tab bar (hidden on device detail) -->
-      <div class="tab-bar" id="tabBar">
-        <div class="tab-bar-inner">
-          <button class="tab-btn active" data-view="messages" type="button">Chats</button>
-          <button class="tab-btn" data-view="devices" type="button">Devices</button>
-        </div>
-      </div>
-
-      <!-- Messages view -->
-      <div class="view active" id="viewMessages">
-        <div class="search-bar" id="searchBar">
-          <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
-          <button class="search-clear hidden" id="searchClear" type="button">Clear</button>
-        </div>
-        <div class="message-list" id="messageList">
-          <div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>
-        </div>
-        <input type="file" id="imageInput" accept="image/*" multiple hidden>
-        <input type="file" id="fileInput" multiple hidden>
-        <div class="preview-strip hidden" id="previewStrip"></div>
-        <div class="input-bar">
-          <input type="text" id="messageInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
-          <button id="sendBtn" type="button" aria-label="Send message">↑</button>
-          <button class="attach-btn" id="attachBtn" type="button" aria-label="Attach images">📎</button>
-          <button class="attach-btn" id="fileAttachBtn" type="button" aria-label="Attach files">📄</button>
-        </div>
-      </div>
-
-      <!-- Devices view -->
-      <div class="view" id="viewDevices">
-        <div class="device-list" id="deviceList">
-          <div class="empty-state">No devices yet<br><span style="font-size:11px;color:var(--text-muted)">Messages will appear here by device</span></div>
-        </div>
-      </div>
-
-      <!-- Device detail view -->
-      <div class="view" id="viewDeviceMessages">
-        <div class="search-bar">
-          <input type="text" id="deviceSearchInput" placeholder="Search this device..." autocomplete="off">
-          <button class="search-clear hidden" id="deviceSearchClear" type="button">Clear</button>
-        </div>
-        <div class="message-list" id="deviceMessageList">
-          <div class="empty-state"><span style="color:var(--text-muted)">Loading...</span></div>
-        </div>
-        <input type="file" id="deviceImageInput" accept="image/*" multiple hidden>
-        <input type="file" id="deviceFileInput" multiple hidden>
-        <div class="preview-strip hidden" id="devicePreviewStrip"></div>
-        <div class="input-bar">
-          <input type="text" id="deviceMsgInput" placeholder="Type your message..." maxlength="10000" autocomplete="off">
-          <button id="deviceSendBtn" type="button" aria-label="Send message">↑</button>
-          <button class="attach-btn" id="deviceAttachBtn" type="button" aria-label="Attach images">📎</button>
-          <button class="attach-btn" id="deviceFileAttachBtn" type="button" aria-label="Attach files">📄</button>
-        </div>
-      </div>
-    </div>
+<div class="layer" id="menuLayer" hidden><div class="scrim clear"></div><div class="menu glass" id="menu" role="menu"></div></div>
+<div class="layer" id="ctxLayer" hidden><div class="scrim blur" id="ctxScrim"></div><div class="ctx" id="ctx"><div class="preview" id="ctxPreview"></div><div class="menu glass" role="menu">
+  <button class="mi" data-ctx="copy" role="menuitem">Copy<svg class="ic"><use href="#i-copy"/></svg></button>
+  <button class="mi" data-ctx="edit" role="menuitem">Edit<svg class="ic"><use href="#i-pencil"/></svg></button>
+  <div class="mgap"></div>
+  <button class="mi red" data-ctx="delete" role="menuitem">Delete<svg class="ic"><use href="#i-trash"/></svg></button>
+</div></div></div>
+<div class="layer" id="sheetLayer" hidden><div class="scrim" id="sheetScrim"></div>
+  <div class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="grab"></div>
+    <div class="sbar"><button class="gbtn glass" id="sheetCancel" type="button">Cancel</button><h3 id="sheetTitle">Device Name</h3><button class="gbtn done" id="sheetDone" type="button">Done</button></div>
+    <label class="namefield"><input id="nameInput" type="text" maxlength="50" placeholder="e.g. My iPhone" autocomplete="off" enterkeyhint="done" aria-label="Device name"></label>
+    <div class="foot">Other devices see your messages under this name. Saved only on this device.</div>
   </div>
-
-  <div class="device-modal hidden" id="deviceModal" role="dialog" aria-modal="true" aria-labelledby="deviceModalTitle">
-    <div class="device-modal-box">
-      <h3 id="deviceModalTitle">Device Name</h3>
-      <input type="text" id="deviceNameInput" placeholder="e.g. My iPhone" maxlength="50" autocomplete="off">
-      <div class="actions">
-        <button class="btn-cancel" id="modalCancel" type="button">Cancel</button>
-        <button class="btn-save" id="modalSave" type="button">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="lightbox hidden" id="lightbox">
-    <button class="lightbox-copy" id="lightboxCopy" type="button" aria-label="Copy image">Copy</button>
-    <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close">&times;</button>
-    <button class="lightbox-nav prev" id="lightboxPrev" type="button" aria-label="Previous image">&lsaquo;</button>
-    <img id="lightboxImg" src="" alt="">
-    <button class="lightbox-nav next" id="lightboxNext" type="button" aria-label="Next image">&rsaquo;</button>
-    <div class="lightbox-counter" id="lightboxCounter"></div>
-  </div>
-
-  <script>
-    const API = '/api/messages';
-    const POLL_INTERVAL = 3000;
-    // Mirrors the server limits, for rejecting before the bytes leave the device.
-    const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-    const MAX_FILE_BYTES = 50 * 1024 * 1024;
-    const DEVICE_KEY = 'device_name';
-    const PREVIEW_LENGTH = 280;
-
-    const AVATAR_COLORS = ['#7c5cbf','#e87da0','#5b9bd5','#5bb5a0','#e8a45b','#a07cc5','#d4788c','#6aaf6a','#c5945b','#8b7ec8'];
-    const PASTEL_BGS = ['#e8f5e0','#fce4ec','#e3f0fc','#fff8e1','#f3e5f5','#e8f0fa','#f5f0e8','#e0f0f5'];
-    function avatarColor(name) { let h=0; for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h); return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]; }
-    function pastelBg(name) { let h=0; for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h); return PASTEL_BGS[Math.abs(h)%PASTEL_BGS.length]; }
-    function avatarInit(name) { return (name||'?').charAt(0).toUpperCase(); }
-
-    // Device name
-    let deviceName = localStorage.getItem(DEVICE_KEY) || '';
-    function getDeviceName() {
-      if (!deviceName) {
-        const ua=navigator.userAgent;
-        if(/iPhone|iPad|iPod/.test(ua))return'iPhone';
-        if(/Android/.test(ua))return/Tablet|Tab/.test(ua)?'Android Tablet':'Android Phone';
-        if(/Mac/.test(ua)&&!/iPhone|iPad/.test(ua))return'Mac';
-        if(/Windows/.test(ua))return'Windows PC';
-        return'Unknown Device';
-      }
-      return deviceName;
-    }
-    function updateDeviceBtn(){ document.getElementById('deviceBtn').textContent=getDeviceName(); }
-    updateDeviceBtn();
-
-    // Device name modal
-    const deviceModal=document.getElementById('deviceModal');
-    const deviceNameInput=document.getElementById('deviceNameInput');
-    document.getElementById('deviceBtn').addEventListener('click',()=>{ deviceNameInput.value=getDeviceName(); deviceModal.classList.remove('hidden'); deviceNameInput.focus(); deviceNameInput.select(); });
-    document.getElementById('modalCancel').addEventListener('click',()=>{ deviceModal.classList.add('hidden'); });
-    function saveDeviceName(){ const n=deviceNameInput.value.trim(); if(n){ deviceName=n; localStorage.setItem(DEVICE_KEY,n); updateDeviceBtn(); refreshDeviceList(); updateHero(); } deviceModal.classList.add('hidden'); }
-    document.getElementById('modalSave').addEventListener('click',saveDeviceName);
-    deviceNameInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')saveDeviceName(); if(e.key==='Escape')deviceModal.classList.add('hidden'); });
-
-    // View switching
-    let currentView='messages', activeDevice=null, previousView='messages';
-    const viewMessages=document.getElementById('viewMessages');
-    const viewDevices=document.getElementById('viewDevices');
-    const viewDeviceMessages=document.getElementById('viewDeviceMessages');
-    const deviceListView=document.getElementById('deviceList');
-    const deviceMessageList=document.getElementById('deviceMessageList');
-    const deviceMsgName=document.getElementById('deviceMsgName');
-    const mainHeader=document.getElementById('mainHeader');
-    const deviceMsgHeader=document.getElementById('deviceMsgHeader');
-    const tabBar=document.getElementById('tabBar');
-
-    document.getElementById('tabBar').addEventListener('click',(e)=>{
-      const tab=e.target.closest('.tab-btn'); if(!tab)return;
-      switchView(tab.dataset.view);
-    });
-    document.getElementById('deviceBackBtn').addEventListener('click',()=>{ switchView(previousView); });
-
-    // Hero pill click -> switch to Devices view
-    document.getElementById('heroPill').addEventListener('click',()=>{ switchView('devices'); });
-
-    function switchView(view) {
-      if(view!=='device-messages') previousView=view;
-      currentView=view;
-      if(view!=='device-messages') activeDevice=null;
-
-      // Toggle hero vs detail header vs tab bar
-      mainHeader.classList.toggle('hidden', view==='device-messages');
-      deviceMsgHeader.classList.toggle('hidden', view!=='device-messages');
-      tabBar.classList.toggle('hidden', view==='device-messages');
-
-      document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
-      const tab=document.querySelector('.tab-btn[data-view="'+ (view==='device-messages'?'devices':view) +'"]');
-      if(tab)tab.classList.add('active');
-
-      viewMessages.classList.toggle('active',view==='messages');
-      viewDevices.classList.toggle('active',view==='devices');
-      viewDeviceMessages.classList.toggle('active',view==='device-messages');
-
-      if(view==='devices'){ refreshDeviceList(); }
-    }
-
-    // Opening device A then quickly B can let A's response land in B's list.
-    let deviceRequestSeq=0;
-    function showDeviceDetail(name) {
-      activeDevice=name;
-      deviceMsgName.textContent=name;
-      document.getElementById('deviceSearchInput').value='';
-      document.getElementById('deviceSearchClear').classList.add('hidden');
-      document.getElementById('deviceMsgInput').value='';
-      switchView('device-messages');
-      const seq=++deviceRequestSeq;
-      deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">Loading...</span></div>';
-      fetch(API+'?device='+encodeURIComponent(name))
-        .then(r=>r.json()).then(data=>{
-          if(seq!==deviceRequestSeq)return;
-          deviceMessageList.innerHTML='';
-          if(data.messages.length===0){ deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>'; }
-          else { data.messages.forEach(msg=>{ deviceMessageList.appendChild(createMessageEl(msg,true,deviceMessageList)); }); deviceMessageList.scrollTop=deviceMessageList.scrollHeight; }
-        }).catch(()=>{ if(seq!==deviceRequestSeq)return; deviceMessageList.innerHTML='<div class="empty-state"><span style="color:var(--danger-text)">Failed to load</span></div>'; });
-    }
-
-    // Build device info from loaded messages
-    function buildDeviceInfo() {
-      const allMsgs=messageList.querySelectorAll('.message');
-      const devices={};
-      allMsgs.forEach(m=>{
-        const nm=m._deviceName||'Unknown';
-        if(!devices[nm]) devices[nm]={count:0,lastTime:'',lastId:0,lastText:''};
-        devices[nm].count++;
-        if(parseInt(m.dataset.id)>devices[nm].lastId){ devices[nm].lastId=parseInt(m.dataset.id); devices[nm].lastTime=m._createdAt||''; devices[nm].lastText=m._text||''; }
-      });
-      return Object.entries(devices).sort((a,b)=>b[1].lastId-a[1].lastId).map(([name,info])=>({name,...info}));
-    }
-
-    // Recent messages for the home section
-    function getRecentMessages(limit) {
-      const msgs=[];
-      messageList.querySelectorAll('.message').forEach(m=>{
-        msgs.push({id:parseInt(m.dataset.id),text:m._text||'',device_name:m._deviceName||'Unknown',created_at:m._createdAt||''});
-      });
-      msgs.sort((a,b)=>b.id-a.id);
-      return msgs.slice(0,limit||5);
-    }
-
-    // Hero
-    function updateHero() {
-      const container=document.getElementById('heroAvatars');
-      const labelEl=document.getElementById('heroPillLabel');
-      const devices=buildDeviceInfo();
-      container.innerHTML='';
-      if(devices.length===0){
-        labelEl.textContent='No devices';
-        return;
-      }
-      const shown=devices.slice(0,4);
-      shown.forEach(d=>{
-        const el=document.createElement('div');
-        el.className='hp-avatar';
-        el.style.background=avatarColor(d.name);
-        el.textContent=avatarInit(d.name);
-        el.title=d.name;
-        container.appendChild(el);
-      });
-      const total=devices.reduce((s,d)=>s+d.count,0);
-      labelEl.textContent=devices.length+' device'+(devices.length>1?'s':'')+' · '+total+' msg';
-    }
-
-    // Device list
-    function buildDeviceList() { return buildDeviceInfo(); }
-
-    function refreshDeviceList() {
-      if(currentView!=='devices'||activeDevice)return;
-      const devices=buildDeviceList();
-      const list=deviceListView;
-      list.innerHTML='';
-      if(devices.length===0){ list.innerHTML='<div class="empty-state">No devices yet<br><span style="font-size:11px;color:var(--text-muted)">Messages will appear here by device</span></div>'; return; }
-
-      // Device cards grid
-      const grid=document.createElement('div');
-      grid.className='device-grid';
-      devices.forEach(d=>{
-        const bg=pastelBg(d.name);
-        const card=document.createElement('div');
-        card.className='device-card';
-        card.style.background=bg;
-        card.innerHTML=`
-          <div class="dc-avatar" style="background:${avatarColor(d.name)}">${avatarInit(d.name)}</div>
-          <div class="dc-body">
-            <div class="dc-header"><span class="dc-name">${escapeHtml(d.name)}</span><span class="dc-badge">${d.count} msg</span></div>
-            <div class="dc-preview">${escapeHtml((d.lastText||'No messages').substring(0,60))}</div>
-            <div class="dc-footer"><span class="dc-time">${d.lastTime?relativeTime(d.lastTime):''}</span><div class="dc-waveform"><span></span><span></span><span></span><span></span></div></div>
-          </div>`;
-        card.addEventListener('click',()=>showDeviceDetail(d.name));
-        grid.appendChild(card);
-      });
-      list.appendChild(grid);
-
-      // Recent activity section
-      const recentMsgs=getRecentMessages(5);
-      if(recentMsgs.length>0){
-        const sec=document.createElement('div');
-        sec.className='recent-section';
-        sec.innerHTML='<div class="section-heading">Recent Activity</div><div class="section-sub" style="margin-bottom:6px">Latest messages across all devices</div>';
-        const rlist=document.createElement('div');
-        rlist.className='recent-list';
-        recentMsgs.forEach(msg=>{
-          const card=document.createElement('div');
-          card.className='recent-card';
-          card.innerHTML=`
-            <div class="rc-avatar" style="background:${avatarColor(msg.device_name)}">${avatarInit(msg.device_name)}</div>
-            <div class="rc-body">
-              <div class="rc-header"><span class="rc-name">${escapeHtml(msg.device_name)}</span><span class="rc-time">${relativeTime(msg.created_at)}</span></div>
-              <div class="rc-text">${escapeHtml((msg.text||'').substring(0,80))}</div>
-            </div>`;
-          card.addEventListener('click',()=>showDeviceDetail(msg.device_name));
-          rlist.appendChild(card);
-        });
-        sec.appendChild(rlist);
-        list.appendChild(sec);
-      }
-
-      // Quick actions
-      const actions=document.createElement('div');
-      actions.style.padding='0';
-      actions.innerHTML='<div class="section-heading" style="margin-top:4px">Quick Actions</div>';
-      const qgrid=document.createElement('div');
-      qgrid.className='quick-actions';
-      qgrid.style.marginTop='6px';
-
-      const newMsg=document.createElement('button');
-      newMsg.className='qa-card'; newMsg.type='button';
-      newMsg.innerHTML='<span class="qa-icon">💬</span><span class="qa-label">New Message</span>';
-      newMsg.addEventListener('click',()=>{ switchView('messages'); setTimeout(()=>document.getElementById('messageInput').focus(),100); });
-
-      const refresh=document.createElement('button');
-      refresh.className='qa-card'; refresh.type='button';
-      refresh.innerHTML='<span class="qa-icon">🔄</span><span class="qa-label">Refresh</span>';
-      refresh.addEventListener('click',()=>{ poll(); });
-
-      qgrid.appendChild(newMsg);
-      qgrid.appendChild(refresh);
-      actions.appendChild(qgrid);
-      list.appendChild(actions);
-    }
-
-    // Messages
-    let lastId=0;
-    const messageList=document.getElementById('messageList');
-
-    function relativeTime(iso){ const now=Date.now(),then=new Date(iso).getTime(),diff=Math.floor((now-then)/1000); if(diff<60)return'just now'; if(diff<3600)return Math.floor(diff/60)+'m ago'; if(diff<86400)return Math.floor(diff/3600)+'h ago'; return Math.floor(diff/86400)+'d ago'; }
-
-    function humanSize(bytes){
-      if(bytes<1024)return bytes+' B';
-      if(bytes<1048576)return (bytes/1024).toFixed(0)+' KB';
-      return (bytes/1048576).toFixed(1)+' MB';
-    }
-
-    // Documents always render expanded: the card is compact and its name and size
-    // are the useful information, so collapsing them would cost a tap.
-    function buildFilesHTML(files){
-      if(!files||files.length===0)return'';
-      let h='<div class="msg-files">';
-      files.forEach(f=>{
-        const ext=(f.original_name||'').split('.').pop().toUpperCase().slice(0,4)||'FILE';
-        h+='<a class="file-attachment" href="'+escapeAttr(f.url)+'" download="'+escapeAttr(f.original_name)+'" title="'+escapeAttr(f.original_name)+'">'
-          +'<span class="file-icon" style="background:'+avatarColor(ext)+'">'+escapeHtml(ext)+'</span>'
-          +'<span class="file-meta"><span class="file-name">'+escapeHtml(f.original_name)+'</span>'
-          +'<span class="file-size">'+escapeHtml(humanSize(f.size))+'</span></span></a>';
-      });
-      return h+'</div>';
-    }
-
-    function buildMessageHTML(msg,truncated){
-      const hasImages=msg.images&&msg.images.length>0;
-      const hasFiles=msg.files&&msg.files.length>0;
-      const text=escapeHtml(msg.text||'');
-      // Attachment-only messages: show a placeholder when there is no text
-      const displayText=(!text&&(hasImages||hasFiles))?(hasImages?'📷 Image':'📎 File'):text;
-      // Image messages: shorter text preview (~6 words), non-image: normal 280 char limit
-      const limit=hasImages?80:PREVIEW_LENGTH;
-      const preview=truncated&&displayText.length>limit?displayText.slice(0,limit)+'...':displayText;
-      const isLong=displayText.length>limit;
-      const imagesHTML=hasImages?buildImagesHTML(msg.images):'';
-      const filesHTML=hasFiles?buildFilesHTML(msg.files):'';
-      const imgHint=hasImages?'<div class="msg-img-hint visible">📷 Tap to view</div>':'';
-      return '<div class="msg-avatar" style="background:'+avatarColor(msg.device_name)+'">'+avatarInit(msg.device_name)+'</div><div class="msg-body"><div class="message-meta"><span class="msg-author">'+escapeHtml(msg.device_name)+'</span><span class="msg-time">'+relativeTime(msg.created_at)+'</span></div>'+(displayText?'<div class="message-text'+(truncated&&isLong?' message-preview':'')+'">'+preview+'</div>'+(truncated&&isLong?'<button class="expand-btn" type="button">Show more</button>':'')+(!truncated&&isLong?'<button class="expand-btn" type="button">Show less</button>':'')+'':'')+imagesHTML+filesHTML+imgHint+'<div class="message-hint"></div></div>';
-    }
-
-    // One place that rebuilds a message's inner HTML and re-attaches everything
-    // the rebuild destroys. Every caller used to redo this by hand, and the ones
-    // that forgot left the expand button dead after edit/cancel.
-    function renderMessage(el,msg){
-      const bg=pastelBg(msg.device_name);
-      const inner=el.querySelector('.message-inner');
-      inner.style.background=bg;
-      inner.innerHTML=buildMessageHTML(msg,el._truncated);
-      const preview=inner.querySelector('.message-preview');
-      if(preview)preview.style.setProperty('--preview-bg',bg);
-      const imgs=inner.querySelector('.msg-images');
-      if(imgs){
-        imgs.style.setProperty('--preview-bg',bg);
-        if(el._imagesExpanded)imgs.classList.remove('collapsed');
-      }
-      const hint=inner.querySelector('.msg-img-hint');
-      if(hint&&el._imagesExpanded)hint.classList.remove('visible');
-      const expandBtn=inner.querySelector('.expand-btn');
-      if(expandBtn)expandBtn.addEventListener('click',(e)=>{
-        e.stopPropagation(); el._truncated=!el._truncated; renderMessage(el,msg);
-      });
-      if(msg.images&&msg.images.length>0)wireImageClicks(el,msg.images);
-      // Only re-filter on a re-render; during initial creation the caller does it once.
-      if(el.parentElement){
-        if(el._listEl===deviceMessageList)applyDeviceSearchFilter(); else applySearchFilter();
-      }
-    }
-
-    function createMessageEl(msg,truncated,listEl){
-      const div=document.createElement('div');
-      div.className='message'; div.dataset.id=msg.id;
-      div._text=msg.text; div._deviceName=msg.device_name; div._createdAt=msg.created_at;
-      div._images=msg.images||[];
-      div._files=msg.files||[];
-      div._truncated=truncated; div._listEl=listEl||messageList; div._imagesExpanded=false;
-      div.innerHTML='<div class="message-inner"></div>';
-      renderMessage(div,msg);
-      div.addEventListener('click',(e)=>{
-        // A click inside the edit UI must not dismiss it; a click anywhere else
-        // while editing cancels the edit instead of just clearing the flag.
-        if(div._editing){
-          if(e.target.closest('.edit-textarea')||e.target.closest('.edit-actions'))return;
-          cancelEdit(div);
-          return;
-        }
-
-        // A document card is a link; let it download instead of copying the text.
-        if(e.target.closest('.file-attachment'))return;
-
-        if(div._images&&div._images.length>0){
-          const mi=div.querySelector('.msg-images');
-          const hint=div.querySelector('.msg-img-hint');
-          if(!div._imagesExpanded){
-            div._imagesExpanded=true;
-            if(mi)mi.classList.remove('collapsed');
-            if(hint)hint.classList.remove('visible');
-            if(div._truncated){div._truncated=false;renderMessage(div,msg);}
-          }else{
-            div._imagesExpanded=false;
-            if(mi)mi.classList.add('collapsed');
-            if(hint)hint.classList.add('visible');
-            if(div._text&&div._text.length>80){div._truncated=true;renderMessage(div,msg);}
-          }
-          return;
-        }
-
-        copyMessage(div,div._text||'');
-      });
-      return div;
-    }
-
-    function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
-    // escapeHtml serializes through textContent, which leaves quotes intact —
-    // not safe for values interpolated into an attribute.
-    function escapeAttr(str){ return String(str==null?'':str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-    function buildImagesHTML(images){
-      if(!images||images.length===0)return'';
-      if(images.length===1){
-        return'<div class="msg-images collapsed"><img class="msg-img-single" src="'+escapeAttr(images[0].url)+'" alt="'+escapeAttr(images[0].original_name)+'" loading="lazy" data-img-index="0"></div>';
-      }
-      let h='<div class="msg-images collapsed"><div class="msg-img-grid">';
-      images.forEach((img,i)=>{h+='<div class="msg-img-grid-item"><img src="'+escapeAttr(img.url)+'" alt="'+escapeAttr(img.original_name)+'" loading="lazy" data-img-index="'+i+'"></div>';});
-      h+='</div></div>';
-      return h;
-    }
-
-    // One draft bucket per view. Four parallel arrays (images and files, main and
-    // device) were already repeating themselves; this keeps them in one place.
-    const drafts={
-      'messages':{images:[],files:[]},
-      'device-messages':{images:[],files:[]}
-    };
-    function currentDraft(){ return drafts[currentView]||drafts['messages']; }
-
-    function updatePreviewStrip(){
-      const draft=currentDraft();
-      const strip=currentView==='device-messages'?devicePreviewStrip:previewStrip;
-      strip.innerHTML='';
-      const total=draft.images.length+draft.files.length;
-      if(total===0){strip.classList.add('hidden');return;}
-      strip.classList.remove('hidden');
-      draft.images.forEach((file,i)=>{
-        const item=document.createElement('div');
-        item.className='preview-item';
-        const img=document.createElement('img');
-        img.src=file._previewUrl=URL.createObjectURL(file);
-        const rm=document.createElement('button');
-        rm.className='preview-remove';rm.textContent='x';rm.type='button';
-        rm.addEventListener('click',(e)=>{e.stopPropagation();
-          draft.images.splice(i,1);
-          URL.revokeObjectURL(img.src);updatePreviewStrip();
-        });
-        item.appendChild(img);item.appendChild(rm);
-        strip.appendChild(item);
-      });
-      draft.files.forEach((file,i)=>{
-        const item=document.createElement('div');
-        item.className='preview-item file';
-        const ext=document.createElement('span');
-        ext.className='preview-ext';
-        ext.textContent=(file.name||'').split('.').pop().slice(0,4)||'FILE';
-        const rm=document.createElement('button');
-        rm.className='preview-remove';rm.textContent='x';rm.type='button';
-        rm.addEventListener('click',(e)=>{e.stopPropagation();
-          draft.files.splice(i,1);updatePreviewStrip();
-        });
-        item.appendChild(ext);item.appendChild(rm);
-        item.title=file.name||'';
-        strip.appendChild(item);
-      });
-    }
-
-    function wireImageClicks(el,images){
-      el.querySelectorAll('.msg-img-single, .msg-img-grid-item img').forEach(img=>{
-        img.addEventListener('dblclick',(e)=>{e.stopPropagation();openLightbox(images,parseInt(img.dataset.imgIndex)||0);});
-      });
-    }
-
-    let lightboxImages=[],lightboxIndex=0,lightboxBlobs=[];
-    const lightbox=document.getElementById('lightbox');
-    const lightboxImg=document.getElementById('lightboxImg');
-    const lightboxCounter=document.getElementById('lightboxCounter');
-    const lightboxCopy=document.getElementById('lightboxCopy');
-
-    // ClipboardItem accepts image/png far more widely than jpeg/webp, so every
-    // copy goes through a canvas round-trip.
-    function toPng(blob){
-      return new Promise((ok,no)=>{
-        const url=URL.createObjectURL(blob);
-        const img=new Image();
-        img.onload=()=>{
-          const c=document.createElement('canvas');
-          c.width=img.naturalWidth; c.height=img.naturalHeight;
-          c.getContext('2d').drawImage(img,0,0);
-          c.toBlob(b=>{ URL.revokeObjectURL(url); b?ok(b):no(new Error('toBlob failed')); },'image/png');
-        };
-        img.onerror=()=>{ URL.revokeObjectURL(url); no(new Error('decode failed')); };
-        img.src=url;
-      });
-    }
-
-    // Fetch starts from the user gesture that opened the lightbox, so by the time
-    // Copy is pressed the blob is warm and clipboard.write() keeps its activation.
-    function ensureBlob(i){
-      if(!lightboxBlobs[i])lightboxBlobs[i]=fetch(lightboxImages[i].url).then(r=>r.blob());
-      return lightboxBlobs[i];
-    }
-
-    function flashCopyButton(text){
-      lightboxCopy.textContent=text;
-      lightboxCopy.classList.add('copied');
-      setTimeout(()=>{ lightboxCopy.textContent='Copy'; lightboxCopy.classList.remove('copied'); },1200);
-    }
-
-    async function copyLightboxImage(){
-      // navigator.clipboard only exists in a secure context, and http://<lan-ip>
-      // is not one. Check synchronously so the fallback opens without being
-      // treated as a popup.
-      if(!(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem)){
-        const url=lightboxImages[lightboxIndex].url;
-        const w=window.open(url,'_blank');
-        if(!w)location.href=url;
-        showError('Clipboard needs HTTPS — opened the image instead. Long-press it to save or copy.');
-        return;
-      }
-      lightboxCopy.disabled=true;
-      try{
-        const png=await toPng(await ensureBlob(lightboxIndex));
-        await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);
-        flashCopyButton('✓ Copied');
-      }catch(e){
-        showError('Copy failed — long-press the image to save it instead.');
-      }finally{ lightboxCopy.disabled=false; }
-    }
-    lightboxCopy.addEventListener('click',copyLightboxImage);
-
-    function openLightbox(images,index){
-      lightboxImages=images;lightboxIndex=index;lightboxBlobs=[];
-      lightboxImg.src=images[index].url;lightboxImg.alt=images[index].original_name;
-      lightboxCounter.textContent=images.length>1?`${index+1} / ${images.length}`:'';
-      document.getElementById('lightboxPrev').style.display=images.length>1?'':'none';
-      document.getElementById('lightboxNext').style.display=images.length>1?'':'none';
-      ensureBlob(index);
-      lightbox.classList.remove('hidden');document.body.style.overflow='hidden';
-    }
-    function closeLightbox(){lightbox.classList.add('hidden');document.body.style.overflow='';}
-    function lightboxNav(delta){
-      lightboxIndex=(lightboxIndex+delta+lightboxImages.length)%lightboxImages.length;
-      lightboxImg.src=lightboxImages[lightboxIndex].url;lightboxImg.alt=lightboxImages[lightboxIndex].original_name;
-      lightboxCounter.textContent=`${lightboxIndex+1} / ${lightboxImages.length}`;
-      ensureBlob(lightboxIndex);
-    }
-    document.getElementById('lightboxClose').addEventListener('click',closeLightbox);
-    document.getElementById('lightboxPrev').addEventListener('click',()=>lightboxNav(-1));
-    document.getElementById('lightboxNext').addEventListener('click',()=>lightboxNav(1));
-    lightbox.addEventListener('click',(e)=>{if(e.target===lightbox)closeLightbox();});
-    document.addEventListener('keydown',(e)=>{
-      if(lightbox.classList.contains('hidden'))return;
-      if(e.key==='Escape')closeLightbox();
-      if(e.key==='ArrowLeft')lightboxNav(-1);
-      if(e.key==='ArrowRight')lightboxNav(1);
-    });
-
-    function showCopied(el){ el.classList.add('copied'); const hint=el.querySelector('.message-hint'); if(hint)hint.textContent='✓ Copied'; setTimeout(()=>{ el.classList.remove('copied'); if(hint)hint.textContent=''; },1200); }
-
-    function copyMessage(el,text){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(()=>{showCopied(el);}).catch(()=>{fallbackCopy(el,text);}); } else {fallbackCopy(el,text);} }
-    function fallbackCopy(el,text){ try{ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); document.body.removeChild(ta); if(ok)showCopied(el); }catch(e){} }
-
-    function clearEmptyState(listEl){ const es=listEl.querySelector('.empty-state'); if(es)es.remove(); }
-
-    // Search
-    const searchInput=document.getElementById('searchInput'), searchClear=document.getElementById('searchClear');
-    // Document names are searchable too: searching "报告" should find the message
-    // carrying 报告.pdf, not just messages whose body text mentions it.
-    function messageMatches(m,q){
-      if(m._text.toLowerCase().includes(q))return true;
-      return (m._files||[]).some(f=>(f.original_name||'').toLowerCase().includes(q));
-    }
-    function applySearchFilter(){
-      const q=searchInput.value.trim().toLowerCase(), msgs=messageList.querySelectorAll('.message'); let vis=0;
-      msgs.forEach(m=>{ if(!q||messageMatches(m,q)){m.style.display='';vis++;}else{m.style.display='none';} });
-      if(q){ searchClear.classList.remove('hidden'); const nr=messageList.querySelector('.search-empty');
-        if(vis===0&&msgs.length>0){ if(!nr){const d=document.createElement('div');d.className='empty-state search-empty';d.textContent='No messages match "'+q+'"';messageList.appendChild(d);}else{nr.textContent='No messages match "'+q+'"';} }else if(nr){nr.remove();}
-      }else{ searchClear.classList.add('hidden'); const nr=messageList.querySelector('.search-empty'); if(nr)nr.remove(); }
-    }
-    searchInput.addEventListener('input',applySearchFilter);
-    searchClear.addEventListener('click',()=>{searchInput.value='';applySearchFilter();searchInput.focus();});
-
-    const deviceSearchInput=document.getElementById('deviceSearchInput'), deviceSearchClear=document.getElementById('deviceSearchClear');
-    function applyDeviceSearchFilter(){
-      const q=deviceSearchInput.value.trim().toLowerCase(), msgs=deviceMessageList.querySelectorAll('.message'); let vis=0;
-      msgs.forEach(m=>{ if(!q||messageMatches(m,q)){m.style.display='';vis++;}else{m.style.display='none';} });
-      if(q){ deviceSearchClear.classList.remove('hidden'); const nr=deviceMessageList.querySelector('.search-empty');
-        if(vis===0&&msgs.length>0){ if(!nr){const d=document.createElement('div');d.className='empty-state search-empty';d.textContent='No messages match "'+q+'"';deviceMessageList.appendChild(d);}else{nr.textContent='No messages match "'+q+'"';} }else if(nr){nr.remove();}
-      }else{ deviceSearchClear.classList.add('hidden'); const nr=deviceMessageList.querySelector('.search-empty'); if(nr)nr.remove(); }
-    }
-    deviceSearchInput.addEventListener('input',applyDeviceSearchFilter);
-    deviceSearchClear.addEventListener('click',()=>{deviceSearchInput.value='';applyDeviceSearchFilter();deviceSearchInput.focus();});
-
-    // Polling
-    let polling=false, pollFailures=0, pollCount=0;
-    const RECONCILE_EVERY=10;
-    function nearBottom(el){ return el.scrollHeight-el.scrollTop-el.clientHeight<80; }
-    const heroStatus=document.querySelector('.hero-status');
-    function setOnline(on){
-      if(!heroStatus)return;
-      heroStatus.textContent=on?'Local Network':'Offline';
-      heroStatus.classList.toggle('offline',!on);
-    }
-
-    // ?since= only ever returns new ids, so edits, deletes and expiries are
-    // invisible to every other open client. Re-align against a full fetch.
-    async function reconcileAll(){
-      try{
-        const res=await fetch(API); if(!res.ok)return;
-        const data=await res.json();
-        reconcileList(messageList,data.messages,false);
-        if(activeDevice)reconcileList(deviceMessageList,data.messages.filter(m=>m.device_name===activeDevice),true);
-        refreshDeviceList(); updateHero();
-      }catch(e){}
-    }
-
-    function reconcileList(listEl,messages,isDevice){
-      const byId=new Map(messages.map(m=>[m.id,m]));
-      // A full response is capped at 200, so "absent from the response" only
-      // means deleted inside the returned window; older ids are simply out of view.
-      const lo=messages.length?Math.min(...messages.map(m=>m.id)):0;
-      const full=messages.length<200;
-      const stick=nearBottom(listEl);
-      Array.from(listEl.querySelectorAll('.message')).forEach(el=>{
-        const id=parseInt(el.dataset.id,10);
-        if(!full&&id<lo)return;
-        const msg=byId.get(id);
-        if(!msg){el.remove();return;}
-        if(el._editing)return;
-        const changed=el._text!==msg.text||el._createdAt!==msg.created_at||
-          JSON.stringify(el._images)!==JSON.stringify(msg.images||[])||
-          JSON.stringify(el._files)!==JSON.stringify(msg.files||[]);
-        if(changed){
-          el._text=msg.text; el._createdAt=msg.created_at;
-          el._images=msg.images||[]; el._files=msg.files||[];
-          renderMessage(el,msg);
-        }
-      });
-      const existing=new Set(Array.from(listEl.querySelectorAll('.message')).map(el=>parseInt(el.dataset.id,10)));
-      const missing=messages.filter(m=>!existing.has(m.id));
-      if(missing.length){
-        clearEmptyState(listEl);
-        missing.forEach(msg=>{ listEl.appendChild(createMessageEl(msg,true,listEl)); lastId=Math.max(lastId,msg.id); });
-      }
-      const nr=listEl.querySelector('.search-empty'); if(nr)nr.remove();
-      if(listEl.querySelector('.message')===null)showEmptyState(listEl);
-      if(stick)listEl.scrollTop=listEl.scrollHeight;
-      if(isDevice)applyDeviceSearchFilter(); else applySearchFilter();
-    }
-
-    async function poll(){
-      if(polling)return; polling=true;
-      try{
-        const prevLastId=lastId; let url=API; if(lastId>0)url+='?since='+lastId;
-        const res=await fetch(url); if(!res.ok)throw new Error('HTTP '+res.status);
-        const data=await res.json();
-        pollFailures=0; setOnline(true);
-        if(data.messages.length>0){
-          clearEmptyState(messageList);
-          const stick=nearBottom(messageList);
-          for(const msg of data.messages){ messageList.appendChild(createMessageEl(msg,true,messageList)); lastId=Math.max(lastId,msg.id); }
-          if(stick)messageList.scrollTop=messageList.scrollHeight;
-          applySearchFilter(); refreshDeviceList(); updateHero();
-        }
-        if(activeDevice){
-          const target=activeDevice;
-          const dUrl=API+'?device='+encodeURIComponent(target)+'&since='+prevLastId;
-          const dRes=await fetch(dUrl);
-          if(dRes.ok){
-            const dData=await dRes.json();
-            if(dData.messages.length>0){
-              clearEmptyState(deviceMessageList);
-              const dStick=nearBottom(deviceMessageList);
-              dData.messages.forEach(msg=>{deviceMessageList.appendChild(createMessageEl(msg,true,deviceMessageList));});
-              if(dStick)deviceMessageList.scrollTop=deviceMessageList.scrollHeight;
-              applyDeviceSearchFilter();
-            }
-          }
-        }
-        if(++pollCount%RECONCILE_EVERY===0)reconcileAll();
-      }catch(e){
-        if(++pollFailures>=2)setOnline(false);
-      }finally{polling=false;}
-    }
-    poll().then(()=>{ messageList.scrollTop=messageList.scrollHeight; updateHero(); });
-    setInterval(poll,POLL_INTERVAL);
-    // Coming back to the tab is the cheapest moment to re-align.
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden)reconcileAll(); });
-
-    // Send — view-aware
-    const messageInput=document.getElementById('messageInput');
-    const sendBtn=document.getElementById('sendBtn');
-    const deviceMsgInput=document.getElementById('deviceMsgInput');
-    const deviceSendBtn=document.getElementById('deviceSendBtn');
-    const errorBar=document.getElementById('errorBar');
-
-    const imageInput=document.getElementById('imageInput');
-    const attachBtn=document.getElementById('attachBtn');
-    const previewStrip=document.getElementById('previewStrip');
-    const fileInput=document.getElementById('fileInput');
-    const fileAttachBtn=document.getElementById('fileAttachBtn');
-    const deviceImageInput=document.getElementById('deviceImageInput');
-    const deviceAttachBtn=document.getElementById('deviceAttachBtn');
-    const devicePreviewStrip=document.getElementById('devicePreviewStrip');
-    const deviceFileInput=document.getElementById('deviceFileInput');
-    const deviceFileAttachBtn=document.getElementById('deviceFileAttachBtn');
-
-    function showError(msg){ errorBar.textContent=msg; errorBar.classList.add('visible'); setTimeout(()=>errorBar.classList.remove('visible'),4000); }
-
-    // Reject before pushing bytes over the network; the server would only refuse
-    // them after the whole upload.
-    function checkDraftSize(draft){
-      const oversized=[...draft.images,...draft.files].find(f=>f.size>MAX_IMAGE_BYTES&&f.type.startsWith('image/'));
-      if(oversized)return 'images are limited to '+(MAX_IMAGE_BYTES/1048576)+' MB';
-      const big=[...draft.files].find(f=>f.size>MAX_FILE_BYTES);
-      if(big)return 'files are limited to '+(MAX_FILE_BYTES/1048576)+' MB';
-      return null;
-    }
-
-    async function sendMessage(inputEl,btnEl){
-      inputEl=inputEl||(currentView==='device-messages'?deviceMsgInput:messageInput);
-      btnEl=btnEl||(currentView==='device-messages'?deviceSendBtn:sendBtn);
-      const text=inputEl.value.trim();
-      const draft=currentDraft();
-      const hasAttachments=draft.images.length>0||draft.files.length>0;
-      if(!text&&!hasAttachments)return;
-      const sizeError=checkDraftSize(draft);
-      if(sizeError){showError(sizeError);return;}
-      btnEl.disabled=true;
-      try{
-        let res;
-        if(hasAttachments){
-          const fd=new FormData();
-          fd.append('device_name',getDeviceName());
-          if(text)fd.append('text',text);
-          draft.images.forEach(f=>fd.append('images',f));
-          draft.files.forEach(f=>fd.append('files',f));
-          res=await fetch(API,{method:'POST',body:fd});
-        }else{
-          res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,device_name:getDeviceName()})});
-        }
-        if(res.ok){
-          inputEl.value='';
-          draft.images.forEach(f=>{ if(f._previewUrl)URL.revokeObjectURL(f._previewUrl); });
-          draft.images=[];draft.files=[];
-          updatePreviewStrip();poll();
-        }else{const err=await res.json().catch(()=>({}));showError(err.error||'Failed to send');}
-      }catch(e){showError('Failed to send. Server may be offline.');}
-      finally{btnEl.disabled=false;inputEl.focus();}
-    }
-
-    sendBtn.addEventListener('click',()=>sendMessage(messageInput,sendBtn));
-    messageInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')sendMessage(messageInput,sendBtn); });
-    deviceSendBtn.addEventListener('click',()=>sendMessage(deviceMsgInput,deviceSendBtn));
-    deviceMsgInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter')sendMessage(deviceMsgInput,deviceSendBtn); });
-
-    attachBtn.addEventListener('click',()=>imageInput.click());
-    imageInput.addEventListener('change',()=>{currentDraft().images.push(...Array.from(imageInput.files));imageInput.value='';updatePreviewStrip();});
-    fileAttachBtn.addEventListener('click',()=>fileInput.click());
-    fileInput.addEventListener('change',()=>{currentDraft().files.push(...Array.from(fileInput.files));fileInput.value='';updatePreviewStrip();});
-    deviceAttachBtn.addEventListener('click',()=>deviceImageInput.click());
-    deviceImageInput.addEventListener('change',()=>{currentDraft().images.push(...Array.from(deviceImageInput.files));deviceImageInput.value='';updatePreviewStrip();});
-    deviceFileAttachBtn.addEventListener('click',()=>deviceFileInput.click());
-    deviceFileInput.addEventListener('change',()=>{currentDraft().files.push(...Array.from(deviceFileInput.files));deviceFileInput.value='';updatePreviewStrip();});
-
-    // Paste image support
-    document.addEventListener('paste',(e)=>{
-      const active=document.activeElement;
-      if(active&&(active.closest('.edit-textarea')||active.id==='searchInput'||active.id==='deviceSearchInput'))return;
-      const items=e.clipboardData?.items;if(!items)return;
-      for(const item of items){
-        if(item.type.startsWith('image/')){
-          e.preventDefault();
-          const file=item.getAsFile();
-          currentDraft().images.push(file);
-          updatePreviewStrip();
-        }
-      }
-    });
-
-    function showEmptyState(listEl){
-      if(listEl===deviceMessageList){
-        listEl.innerHTML='<div class="empty-state"><span style="color:var(--text-muted)">No messages from this device</span></div>';
-      }else{
-        listEl.innerHTML='<div class="empty-state">No messages yet<br><span style="font-size:11px;color:var(--text-muted)">Type something below to get started</span></div>';
-      }
-    }
-
-    function restoreSwipe(el){
-      const inner=el.querySelector('.message-inner');
-      if(inner){ inner.style.transition='transform 0.2s ease'; inner.style.transform='translateX(0)'; }
-      el._editing=false;
-      setTimeout(()=>el.classList.remove('swiped'),250);
-    }
-
-    async function deleteMessage(el,id){
-      // Must be captured before remove() — afterwards el.parentElement is null,
-      // which used to throw here and skip the empty-state and count updates.
-      const parentList=el.parentElement;
-      try{
-        const res=await fetch(API+'/'+id,{method:'DELETE'});
-        if(res.ok||res.status===404){
-          el.remove();
-          if(parentList){
-            const nr=parentList.querySelector('.search-empty'); if(nr)nr.remove();
-            if(parentList.children.length===0)showEmptyState(parentList);
-          }
-          refreshDeviceList(); updateHero();
-        }else{
-          restoreSwipe(el);
-        }
-      }catch(e){ restoreSwipe(el); }
-    }
-
-    // Swipe and long-press
-    let swipeTarget=null,swipeStartX=0,swipeStartY=0,swipeDeltaX=0,swiping=false,longPressTimer=null;
-
-    function enterEditMode(el){
-      const bodyEl=el.querySelector('.msg-body');
-      const textEl=bodyEl?bodyEl.querySelector('.message-text'):el.querySelector('.message-text');
-      const original=el._text||'';
-      const hasImages=el._images&&el._images.length>0;
-      let editHTML='<textarea class="edit-textarea" rows="3" maxlength="10000">'+escapeHtml(original)+'</textarea><div class="edit-actions"><button class="btn-edit-cancel" type="button">Cancel</button><button class="btn-edit-save" type="button">Save</button></div>';
-      if(hasImages){editHTML+=buildImagesHTML(el._images).replace(' collapsed','');}
-      textEl.innerHTML=editHTML;
-      const ta=textEl.querySelector('.edit-textarea');ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
-      ta.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveEdit(el);}if(e.key==='Escape')cancelEdit(el);});
-      textEl.querySelector('.btn-edit-cancel').addEventListener('click',()=>cancelEdit(el));
-      textEl.querySelector('.btn-edit-save').addEventListener('click',()=>saveEdit(el));
-      if(hasImages){wireImageClicks(textEl,el._images);}
-      el._editing=true;
-    }
-    function cancelEdit(el){
-      const msg={id:parseInt(el.dataset.id),text:el._text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
-      el._editing=false;
-      renderMessage(el,msg);
-    }
-    async function saveEdit(el){
-      const ta=el.querySelector('.edit-textarea');const text=ta?ta.value.trim():'';
-      const hasImages=el._images&&el._images.length>0;
-      if(!text&&!hasImages){showError('Message cannot be empty');return;}
-      try{
-        const res=await fetch(API+'/'+el.dataset.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-        if(res.ok){
-          el._text=text;
-          const msg={id:parseInt(el.dataset.id),text:text,device_name:el._deviceName,created_at:el._createdAt,images:el._images||[]};
-          el._editing=false;
-          renderMessage(el,msg);
-        }else{const err=await res.json().catch(()=>({}));showError(err.error||'Failed to save');}
-      }catch(e){showError('Failed to save. Server may be offline.');}
-    }
-
-    function cancelLongPress(){ if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;} }
-
-    function handleTouchStart(e){
-      if(e.touches.length!==1){swipeTarget=null;return;}
-      swipeTarget=e.target.closest('.message'); if(!swipeTarget||swipeTarget._editing)return;
-      // Long-pressing an attachment must fall through to the browser's own
-      // save/copy callout instead of opening the editor.
-      if(isAttachmentTarget(e.target)){swipeTarget=null;return;}
-      swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;swipeDeltaX=0;swiping=false;
-      longPressTimer=setTimeout(()=>{if(!swiping)enterEditMode(swipeTarget);longPressTimer=null;},500);
-    }
-    function handleTouchMove(e){
-  if(!swipeTarget)return; const dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
-  // A mostly-vertical drag is a scroll: it is neither a swipe nor a long press,
-  // and it must cancel the pending edit-mode timer.
-  if(!swiping&&Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){cancelLongPress();return;}
-  if(!swiping&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>5){swiping=true;swipeTarget.classList.add('swiped');cancelLongPress();}
-  if(!swiping)return; e.preventDefault();
-  swipeDeltaX=Math.max(-120,Math.min(0,dx)); const inner=swipeTarget.querySelector('.message-inner');
-  if(inner){inner.classList.add('swiping');inner.style.transform='translateX('+swipeDeltaX+'px)';}
+</div>
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <button class="gbtn glass copy" id="lbCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>Copy</button>
+  <button class="gbtn glass close" id="lbClose" type="button" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  <button class="gbtn glass prev" id="lbPrev" type="button" aria-label="Previous photo"><svg class="ic"><use href="#i-left"/></svg></button>
+  <img id="lbImg" alt="">
+  <button class="gbtn glass next" id="lbNext" type="button" aria-label="Next photo"><svg class="ic"><use href="#i-chev"/></svg></button>
+  <div class="count glass num" id="lbCount"></div>
+</div>
+
+<script>
+const API = '/api/messages';
+const POLL_INTERVAL = 3000;
+const RECONCILE_EVERY = 10;
+// Mirrors the server limits, for rejecting before the bytes leave the device.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const DEVICE_KEY = 'device_name';
+const PREVIEW_LENGTH = 280;
+const PREVIEW_LENGTH_IMAGES = 80;
+// Just In cards are a glance, not a reader: shorter cut, and big type only for snippets.
+const CARD_PREVIEW_LENGTH = 140;
+const CARD_BIG_TEXT = 60;
+const TABS = [['everything', 'Everything', 'tray'], ['text', 'Text', 'text'], ['photos', 'Photos', 'photo'], ['files', 'Files', 'doc']];
+
+const $ = s => document.querySelector(s);
+const ic = (id, cls = '') => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h); return Math.abs(h); }
+const tone = s => `var(--device-${hash(String(s || '?')) % 5 + 1})`;
+function devIcon(name) {
+  const n = (name || '').toLowerCase();
+  if (/ipad|tablet/.test(n)) return 'ipad';
+  if (/iphone|phone|android/.test(n)) return 'iphone';
+  if (/mac|book|laptop/.test(n)) return 'laptop';
+  return 'desktop';
 }
-function handleTouchEnd(){
-  cancelLongPress(); if(!swipeTarget)return;
-  const inner=swipeTarget.querySelector('.message-inner');
-  if(inner){ inner.classList.remove('swiping');inner.style.transition='transform 0.2s ease';
-    if(swipeDeltaX<-80){ swipeTarget._editing=true;inner.style.transform='translateX(-120%)'; const id=parseInt(swipeTarget.dataset.id,10); if(id)deleteMessage(swipeTarget,id); }
-    else{inner.style.transform='translateX(0)';setTimeout(()=>{if(swipeTarget)swipeTarget.classList.remove('swiped');},250);}
-  } swipeTarget=null;
+const dvHTML = name => `<span class="dv" style="--dc:${tone(name)}">${ic(devIcon(name))}</span>`;
+function rel(iso) {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d / 60) + 'm ago';
+  if (d < 86400) return Math.floor(d / 3600) + 'h ago';
+  return Math.floor(d / 86400) + 'd ago';
 }
+function humanSize(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
+const extOf = name => ((name || '').split('.').length > 1 ? name.split('.').pop() : 'file').slice(0, 4).toUpperCase();
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+
+// ---------- identity ----------
+let deviceName = localStorage.getItem(DEVICE_KEY) || '';
+function getDeviceName() {
+  if (deviceName) return deviceName;
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) return 'iPhone';
+  if (/Android/.test(ua)) return /Tablet|Tab/.test(ua) ? 'Android Tablet' : 'Android Phone';
+  if (/Mac/.test(ua)) return 'Mac';
+  if (/Windows/.test(ua)) return 'Windows PC';
+  return 'Unknown Device';
+}
+
+// ---------- state ----------
+// all: the global window (newest 200 + anything polled since). dev: per-device windows
+// fetched with ?device=, which can reach further back than the global 200.
+const S = {
+  all: new Map(), lastId: 0, dev: {},
+  tab: 'everything', device: null, query: '',
+  ui: new Map(), editing: null, online: true, loaded: false,
+  gridImgs: [], suppressClickUntil: 0,
+};
+const uiOf = id => { let u = S.ui.get(id); if (!u) { u = { imgs: false, more: false }; S.ui.set(id, u); } return u; };
+const scopeMap = () => S.device ? (S.dev[S.device]?.map || new Map()) : S.all;
+const scopeList = () => [...scopeMap().values()].sort((a, b) => b.id - a.id);
+const findMsg = id => scopeMap().get(id) || S.all.get(id);
+// Document names are searchable too: "报告" should find the message carrying 报告.pdf.
+function matches(m, q) {
+  return (m.text || '').toLowerCase().includes(q) || (m.files || []).some(f => (f.original_name || '').toLowerCase().includes(q));
+}
+const flatImages = list => list.flatMap(m => (m.images || []).map((im, i) => ({ ...im, m, i })));
+const flatFiles = list => list.flatMap(m => (m.files || []).map(f => ({ ...f, m })));
+function deviceStats() {
+  const d = new Map();
+  for (const m of S.all.values()) {
+    const s = d.get(m.device_name) || { name: m.device_name, count: 0, last: null };
+    s.count++; if (!s.last || m.id > s.last.id) s.last = m;
+    d.set(m.device_name, s);
+  }
+  return [...d.values()].sort((a, b) => b.last.id - a.last.id);
+}
+
+// ---------- rendering ----------
+const view = $('#view'), scroller = $('#scroll'), mainEl = $('#main');
+let renderQueued = false;
+function scheduleRender() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); }
+function render() { renderChrome(); renderView(); }
+
+function renderChrome() {
+  const tabLabel = TABS.find(t => t[0] === S.tab)[1];
+  const list = scopeList();
+  const title = S.device || tabLabel;
+  $('#title').textContent = title;
+  $('#mini').textContent = title;
+  document.title = S.device ? S.device + ' · MessageAnywhere' : 'MessageAnywhere';
+  const stats = deviceStats();
+  let sub;
+  if (S.device) {
+    const last = list[0];
+    sub = [tabLabel, plural(list.length, 'message'), last ? 'active ' + rel(last.created_at) : ''].filter(Boolean).join(' · ');
+  } else sub = plural(stats.length, 'device') + ' · ' + plural(S.all.size, 'message');
+  $('#subtitle').textContent = ' · ' + sub;
+  $('#backBtn').hidden = !S.device;
+  $('#meBtn').hidden = !!S.device;
+  $('#meBtn').innerHTML = ic(devIcon(getDeviceName()));
+  $('#input').placeholder = S.device ? 'Send as ' + getDeviceName() : 'Send to all devices';
+
+  const counts = { everything: list.length, text: list.length, photos: flatImages(list).length, files: flatFiles(list).length };
+  $('#sideTabs').innerHTML = TABS.map(([k, label, icon]) =>
+    `<button class="si" type="button" data-tab="${k}" aria-current="${S.tab === k}">${ic(icon)}<span class="lbl">${label}</span><span class="cnt num">${counts[k]}</span></button>`).join('');
+  $('#tabs').innerHTML = TABS.map(([k, label, icon]) =>
+    `<button class="tab" type="button" data-tab="${k}" aria-current="${S.tab === k}">${ic(icon)}${label}</button>`).join('');
+  $('#sideDevCount').textContent = stats.length;
+  $('#sideDevices').innerHTML =
+    `<button class="si" type="button" data-device="" aria-current="${!S.device}">${ic('devices')}<span class="lbl">All Devices</span><span class="cnt num">${S.all.size}</span></button>` +
+    stats.map(s => `<button class="si" type="button" data-device="${esc(s.name)}" aria-current="${S.device === s.name}">${dvHTML(s.name)}<span class="lbl">${esc(s.name)}</span><span class="cnt num">${s.count}</span></button>`).join('');
+  $('#meCard').innerHTML = `${dvHTML(getDeviceName())}<span><b>${esc(getDeviceName())}</b><small>This device · tap to rename</small></span>${ic('pencil', 'ed')}`;
+}
+
+function empty(title, sub, err) { return `<div class="empty${err ? ' err' : ''}"><b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>`; }
+function section(title, count, seeTab, body) {
+  return `<section class="sec"><div class="sh"><h2>${title}${count != null ? ` <span class="num">${count}</span>` : ''}</h2>` +
+    (seeTab ? `<button type="button" data-see="${seeTab}">See All${ic('chev')}</button>` : '') + `</div>${body}</section>`;
+}
+
+function viewHTML() {
+  if (!S.loaded) return empty('Loading…');
+  if (S.device) {
+    const d = S.dev[S.device];
+    if (!d || d.status === 'loading') return empty('Loading…');
+    if (d.status === 'error') return empty('Failed to load', 'Check the connection and try Refresh.', true);
+  }
+  const list = scopeList();
+  const q = S.query.trim().toLowerCase();
+  if (!list.length) return S.device ? empty('No messages from this device') : empty('No messages yet', 'Type something below to get started');
+  const hits = q ? list.filter(m => matches(m, q)) : list;
+  const noMatch = () => empty(`No messages match “${S.query.trim()}”`);
+
+  if (S.tab === 'photos') {
+    const imgs = flatImages(hits);
+    return imgs.length ? gridHTML(imgs, true) : (q ? noMatch() : empty('No photos yet', 'Photos you send show up here.'));
+  }
+  if (S.tab === 'files') {
+    const files = q ? flatFiles(list).filter(f => (f.original_name || '').toLowerCase().includes(q) || (f.m.text || '').toLowerCase().includes(q)) : flatFiles(list);
+    return files.length ? `<div class="list">${files.map(fileRowHTML).join('')}</div>` : (q ? noMatch() : empty('No files yet', 'Documents you send show up here.'));
+  }
+  if (S.tab === 'text' || q) {
+    return hits.length ? `<div class="list">${hits.map(m => msgHTML(m, 'row')).join('')}</div>` : noMatch();
+  }
+  const just = list.slice(0, 5), rest = list.slice(5, 15);
+  const imgs = flatImages(list), files = flatFiles(list);
+  let h = section('Just In', null, null, `<div class="just">${just.map(m => msgHTML(m, 'card')).join('')}</div>`);
+  if (imgs.length) h += section('Photos', imgs.length, imgs.length > 6 ? 'photos' : null, gridHTML(imgs.slice(0, 6), false, imgs));
+  if (files.length) h += section('Files', files.length, files.length > 3 ? 'files' : null, `<div class="list">${files.slice(0, 3).map(fileRowHTML).join('')}</div>`);
+  if (rest.length) h += section('Text', list.length, 'text', `<div class="list">${rest.map(m => msgHTML(m, 'row')).join('')}</div>`);
+  return h;
+}
+
+function gridHTML(shown, all, lightboxList) {
+  S.gridImgs = lightboxList || shown;
+  return `<div class="grid${all ? ' all' : ''}">` + shown.map((im, i) =>
+    `<button class="ph" type="button" data-ph="${i}" aria-label="Open photo from ${esc(im.m.device_name)}"><img src="${esc(im.url)}" alt="${esc(im.original_name)}" loading="lazy" decoding="async"><span>${esc(rel(im.m.created_at).replace(' ago', ''))}</span></button>`).join('') + '</div>';
+}
+
+function fileRowHTML(f) {
+  const ext = extOf(f.original_name);
+  return `<a class="frow" href="${esc(f.url)}" download="${esc(f.original_name)}" title="${esc(f.original_name)}"><span class="doc" style="--fc:${tone(ext)}">${esc(ext)}</span>` +
+    `<span class="fm"><b>${esc(f.original_name)}</b><small>${esc(humanSize(f.size))} · ${esc(f.m.device_name)} · <time data-t="${esc(f.m.created_at)}">${rel(f.m.created_at)}</time></small></span>${ic('dl')}</a>`;
+}
+
+function filesHTML(files) {
+  return (files || []).map(f => {
+    const ext = extOf(f.original_name);
+    return `<a class="file" href="${esc(f.url)}" download="${esc(f.original_name)}" title="${esc(f.original_name)}"><span class="doc" style="--fc:${tone(ext)}">${esc(ext)}</span><span class="fm"><b>${esc(f.original_name)}</b><small>${esc(humanSize(f.size))}</small></span>${ic('dl')}</a>`;
+  }).join('');
+}
+
+function thumbsHTML(images) {
+  return `<div class="thumbs${images.length === 1 ? ' one' : ''}">` + images.map((im, i) =>
+    `<img class="thumb" src="${esc(im.url)}" alt="${esc(im.original_name)}" loading="lazy" decoding="async" data-idx="${i}">`).join('') + '</div>';
+}
+
+function msgHTML(m, kind) {
+  const u = uiOf(m.id);
+  const hasImg = (m.images || []).length > 0, hasFile = (m.files || []).length > 0;
+  const editing = S.editing === m.id;
+  const text = m.text || '';
+  const limit = hasImg ? PREVIEW_LENGTH_IMAGES : kind === 'card' ? CARD_PREVIEW_LENGTH : PREVIEW_LENGTH;
+  const long = text.length > limit;
+  let body = '';
+  if (editing) {
+    body += `<div class="edit"><textarea class="edit-ta" rows="3" maxlength="10000" aria-label="Edit message">${esc(text)}</textarea>` +
+      `<div class="acts"><small>Enter to save · Shift+Enter new line · Esc to cancel</small><button class="pill" type="button" data-act="cancel-edit">Cancel</button><button class="pill fill" type="button" data-act="save-edit">Save</button></div></div>`;
+  } else if (text) {
+    body += `<div class="tx${long && !u.more ? ' clamp' : ''}${kind === 'card' && text.length > CARD_BIG_TEXT ? ' body' : ''}">${esc(long && !u.more ? text.slice(0, limit) + '…' : text)}</div>` +
+      (long ? `<button class="more" type="button" data-act="more">${u.more ? 'Show Less' : 'Show More'}</button>` : '');
+  } else {
+    body += `<div class="tx muted">${hasImg ? 'Photo' : 'File'}</div>`;
+  }
+  if (hasImg) body += (u.imgs || editing) ? thumbsHTML(m.images)
+    : `<div class="reveal">${ic('eye')}${plural(m.images.length, 'Photo')} · Tap to Show</div>`;
+  if (hasFile) body += filesHTML(m.files);
+  const meta = `<div class="meta">${S.device ? `<span class="who">${esc(m.device_name)}</span>` : `<button class="who" type="button" data-act="device">${esc(m.device_name)}</button>`}<time data-t="${esc(m.created_at)}">${rel(m.created_at)}</time></div>`;
+  const flash = `<span class="flash">${ic('check')}Copied</span>`;
+  const cls = `msg${editing ? ' editing' : ''}`;
+  if (kind === 'card') {
+    return `<article class="card ${cls}" data-id="${m.id}" data-kind="card" tabindex="0" style="--dc:${tone(m.device_name)}"><div class="top">${dvHTML(m.device_name)}${meta}</div>${body}${flash}</article>`;
+  }
+  return `<div class="li ${cls}" data-id="${m.id}" data-kind="row" tabindex="0"><div class="li-in">${dvHTML(m.device_name)}<div class="m">${meta}${body}</div></div>${flash}</div>`;
+}
+
+// Keeps the message under the user's eye in place when newer items land above it.
+function renderView() {
+  let anchor = null;
+  if (scroller.scrollTop > 0) {
+    const top = scroller.getBoundingClientRect().top;
+    for (const el of view.querySelectorAll('.li.msg,.frow,.card')) {
+      const r = el.getBoundingClientRect();
+      if (r.bottom > top + 60) { anchor = { key: el.dataset.id || el.getAttribute('href'), off: r.top }; break; }
+    }
+  }
+  view.innerHTML = viewHTML();
+  if (anchor) {
+    const el = [...view.querySelectorAll('.li.msg,.frow,.card')].find(e => (e.dataset.id || e.getAttribute('href')) === anchor.key);
+    if (el) scroller.scrollTop += el.getBoundingClientRect().top - anchor.off;
+  }
+}
+
+function updateMsg(id) {
+  const m = findMsg(id);
+  view.querySelectorAll(`.msg[data-id="${id}"]`).forEach(el => {
+    if (!m) { el.remove(); return; }
+    const t = document.createElement('template');
+    t.innerHTML = msgHTML(m, el.dataset.kind);
+    el.replaceWith(t.content.firstElementChild);
+  });
+}
+
+// ---------- data ----------
+const sig = m => m.text + '|' + m.created_at + '|' + JSON.stringify(m.images || []) + JSON.stringify(m.files || []);
+function store(map, m) {
+  const old = map.get(m.id);
+  if (old && sig(old) === sig(m)) return false;
+  map.set(m.id, m); return true;
+}
+function trackLast(m) { if (m.id > S.lastId) S.lastId = m.id; }
+// A full response is capped at 200, so "absent from the response" only means deleted
+// inside the returned window; older ids are simply out of view.
+function reconcileInto(map, list) {
+  let changed = false;
+  const byId = new Map(list.map(m => [m.id, m]));
+  const lo = list.length ? Math.min(...list.map(m => m.id)) : 0;
+  const full = list.length < 200;
+  for (const id of [...map.keys()]) {
+    if (!full && id < lo) continue;
+    const m = byId.get(id);
+    if (!m) { map.delete(id); changed = true; if (S.editing === id) S.editing = null; continue; }
+    if (S.editing === id) continue;
+    if (store(map, m)) changed = true;
+  }
+  for (const m of list) if (!map.has(m.id)) { map.set(m.id, m); changed = true; }
+  return changed;
+}
+
+async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
+
+function setOnline(on) {
+  if (S.online === on) return;
+  S.online = on;
+  $('#status').textContent = on ? 'Local network' : 'Offline';
+  $('#statusDot').classList.toggle('off', !on);
+  $('#sideDot').classList.toggle('off', !on);
+}
+
+let polling = false, pollFailures = 0, pollCount = 0;
+async function poll() {
+  if (polling) return; polling = true;
+  try {
+    const data = await getJSON(API + (S.lastId > 0 ? '?since=' + S.lastId : ''));
+    pollFailures = 0; setOnline(true);
+    let changed = !S.loaded; S.loaded = true;
+    for (const m of data.messages) { if (store(S.all, m)) changed = true; trackLast(m); }
+    const dev = S.device, d = dev && S.dev[dev];
+    if (d && d.status === 'ok') {
+      const dd = await getJSON(API + '?device=' + encodeURIComponent(dev) + '&since=' + d.last);
+      if (S.dev[dev] === d) for (const m of dd.messages) { if (store(d.map, m)) changed = true; d.last = Math.max(d.last, m.id); }
+    }
+    if (++pollCount % RECONCILE_EVERY === 0) { if (await reconcileAll(true)) changed = true; }
+    if (changed) scheduleRender();
+  } catch (e) {
+    if (++pollFailures >= 2) setOnline(false);
+  } finally { polling = false; }
+}
+
+// ?since= only ever returns new ids, so edits, deletes and expiries are invisible to
+// every other open client. Re-align against a full fetch.
+async function reconcileAll(quiet) {
+  try {
+    const data = await getJSON(API);
+    let changed = reconcileInto(S.all, data.messages);
+    data.messages.forEach(trackLast);
+    const dev = S.device, d = dev && S.dev[dev];
+    if (d && d.status === 'ok') {
+      const dd = await getJSON(API + '?device=' + encodeURIComponent(dev));
+      if (S.dev[dev] === d && reconcileInto(d.map, dd.messages)) changed = true;
+    }
+    if (changed && !quiet) scheduleRender();
+    return changed;
+  } catch { return false; }
+}
+
+// Opening device A then quickly B must not let A's response land in B's view.
+function loadDevice(name) {
+  const d = { map: new Map(), last: 0, status: 'loading' };
+  S.dev[name] = d;
+  getJSON(API + '?device=' + encodeURIComponent(name)).then(data => {
+    if (S.dev[name] !== d) return;
+    for (const m of data.messages) { d.map.set(m.id, m); d.last = Math.max(d.last, m.id); }
+    d.status = 'ok';
+  }).catch(() => { if (S.dev[name] === d) d.status = 'error'; }).finally(() => { if (S.device === name) scheduleRender(); });
+}
+
+// ---------- navigation ----------
+function setTab(tab) {
+  if (S.tab === tab) { scroller.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  S.tab = tab; scroller.scrollTop = 0; render();
+}
+function setDevice(name) {
+  name = name || null;
+  if (S.device === name) return;
+  saveDraftText();
+  S.device = name; S.editing = null;
+  if (name) loadDevice(name);
+  loadDraft();
+  scroller.scrollTop = 0; render();
+}
+$('#backBtn').addEventListener('click', () => setDevice(null));
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]'); if (t) { setTab(t.dataset.tab); return; }
+  const d = e.target.closest('[data-device]'); if (d) { setDevice(d.dataset.device); }
+});
+$('#searchTab').addEventListener('click', () => { scroller.scrollTo({ top: 0 }); search.focus(); });
+
+// ---------- search ----------
+const search = $('#search');
+search.addEventListener('input', () => { S.query = search.value; $('#searchClear').hidden = !search.value; scheduleRender(); });
+$('#searchClear').addEventListener('click', () => { search.value = ''; S.query = ''; $('#searchClear').hidden = true; render(); search.focus(); });
+
+// ---------- message interactions ----------
+const isAttachment = t => !!t.closest('img.thumb, a.file, .ph');
+
+function copyText(text, el) {
+  const done = () => { el.classList.add('copied'); clearTimeout(el._flash); el._flash = setTimeout(() => el.classList.remove('copied'), 1200); };
+  const fallback = () => {
+    try {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); if (ok) done();
+    } catch {}
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+}
+
+view.addEventListener('click', e => {
+  if (Date.now() < S.suppressClickUntil) { e.preventDefault(); return; }
+  const see = e.target.closest('[data-see]'); if (see) { setTab(see.dataset.see); return; }
+  const ph = e.target.closest('.ph'); if (ph) { openLightbox(S.gridImgs.map(x => x), +ph.dataset.ph); return; }
+  const el = e.target.closest('.msg'); if (!el) return;
+  const id = +el.dataset.id, m = findMsg(id); if (!m) return;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  // A click inside the edit UI must not dismiss it; anywhere else on the message cancels.
+  if (S.editing === id) {
+    if (act === 'save-edit') saveEdit(id);
+    else if (act === 'cancel-edit' || !e.target.closest('.edit')) cancelEdit();
+    return;
+  }
+  if (act === 'device') { setDevice(m.device_name); return; }
+  if (act === 'more') { const u = uiOf(id); u.more = !u.more; updateMsg(id); return; }
+  if (e.target.closest('a.file')) return;
+  const thumb = e.target.closest('img.thumb');
+  if (thumb) { openLightbox(m.images, +thumb.dataset.idx); return; }
+  if ((m.images || []).length) {
+    const u = uiOf(id);
+    u.imgs = !u.imgs;
+    // Expanding shows the whole message; collapsing returns to the short preview.
+    u.more = u.imgs;
+    updateMsg(id); return;
+  }
+  copyText(m.text || '', el);
+});
+
+view.addEventListener('keydown', e => {
+  const el = e.target.classList?.contains('msg') ? e.target : null;
+  if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.click(); }
+  if (el && (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) { e.preventDefault(); openCtx(el); }
+  if (e.target.classList?.contains('edit-ta')) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveEdit(S.editing); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+  }
+});
+
+view.addEventListener('dblclick', e => {
+  const thumb = e.target.closest('img.thumb');
+  const el = e.target.closest('.msg'); if (!el) return;
+  const id = +el.dataset.id, m = findMsg(id); if (!m || S.editing === id) return;
+  if (thumb) { e.stopPropagation(); openLightbox(m.images, +thumb.dataset.idx); return; }
+  // Collapsed photos: both clicks landed on the body meaning "show me", not "delete".
+  if ((m.images || []).length && !uiOf(id).imgs) return;
+  if (isAttachment(e.target) || e.target.closest('[data-act]')) return;
+  deleteMessage(id, el);
+});
+
+view.addEventListener('contextmenu', e => {
+  const el = e.target.closest('.msg'); if (!el || S.editing === +el.dataset.id) return;
+  // Right-clicking an attachment belongs to the browser's own save/copy menu.
+  if (isAttachment(e.target)) return;
+  e.preventDefault();
+  openCtx(el, e.pointerType === 'touch' ? null : e.clientX, e.pointerType === 'touch' ? null : e.clientY);
+});
+
+// Swipe-left to delete (list rows) and long-press for the menu (rows and cards).
+let T = null;
+const cancelLongPress = () => { if (T && T.timer) { clearTimeout(T.timer); T.timer = null; } };
+view.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { T = null; return; }
+  const el = e.target.closest('.msg');
+  if (!el || S.editing === +el.dataset.id || isAttachment(e.target) || e.target.closest('[data-act]')) { T = null; return; }
+  const t = e.touches[0];
+  T = { el, x: t.clientX, y: t.clientY, dx: 0, swiping: false, canSwipe: el.dataset.kind === 'row' };
+  T.timer = setTimeout(() => { if (T && !T.swiping) { T.timer = null; S.suppressClickUntil = Date.now() + 700; openCtx(T.el); } }, 500);
+}, { passive: true });
+view.addEventListener('touchmove', e => {
+  if (!T) return;
+  const dx = e.touches[0].clientX - T.x, dy = e.touches[0].clientY - T.y;
+  // A mostly-vertical drag is a scroll: neither a swipe nor a long press.
+  if (!T.swiping && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { cancelLongPress(); T = null; return; }
+  if (Math.abs(dx) > 10) cancelLongPress();
+  if (T.canSwipe && !T.swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) { T.swiping = true; T.el.classList.add('swiped'); }
+  if (!T.swiping) return;
+  e.preventDefault();
+  T.dx = Math.max(-120, Math.min(0, dx));
+  const inner = T.el.querySelector('.li-in'); inner.style.transition = 'none'; inner.style.transform = `translateX(${T.dx}px)`;
+}, { passive: false });
+function restoreSwipe(el) {
+  const inner = el.querySelector('.li-in'); if (!inner) return;
+  inner.style.transition = ''; inner.style.transform = '';
+  setTimeout(() => el.classList.remove('swiped'), 250);
+}
+view.addEventListener('touchend', () => {
+  cancelLongPress(); if (!T) return;
+  if (T.swiping) {
+    const inner = T.el.querySelector('.li-in'); inner.style.transition = '';
+    S.suppressClickUntil = Date.now() + 400;
+    if (T.dx < -80) { inner.style.transform = 'translateX(-120%)'; deleteMessage(+T.el.dataset.id, T.el); }
+    else restoreSwipe(T.el);
+  }
+  T = null;
+});
 // iOS takes over the gesture mid-scroll and never fires touchend.
-function handleTouchCancel(){
-  cancelLongPress();
-  if(swipeTarget&&swiping)restoreSwipe(swipeTarget);
-  swipeTarget=null; swiping=false; swipeDeltaX=0;
+view.addEventListener('touchcancel', () => { cancelLongPress(); if (T && T.swiping) restoreSwipe(T.el); T = null; });
+
+async function deleteMessage(id, el) {
+  try {
+    const r = await fetch(API + '/' + id, { method: 'DELETE' });
+    if (r.ok || r.status === 404) {
+      S.all.delete(id); for (const d of Object.values(S.dev)) d.map.delete(id);
+      S.ui.delete(id); if (S.editing === id) S.editing = null;
+      render();
+    } else { if (el) restoreSwipe(el); showError('Failed to delete'); }
+  } catch { if (el) restoreSwipe(el); showError('Failed to delete. Server may be offline.'); }
 }
-    // Anything the user is trying to act on directly — view an image, download a
-    // document — must not also trigger the message-level gesture.
-    function isAttachmentTarget(t){ return !!t.closest('.msg-img-single, .msg-img-grid-item img, .file-attachment'); }
 
-    function handleContextMenu(e){
-      const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return;
-      // Right-clicking an attachment belongs to the browser's own save/copy menu.
-      if(isAttachmentTarget(e.target))return;
-      e.preventDefault();enterEditMode(msgEl);
-    }
-    function handleDblClick(e){
-      const msgEl=e.target.closest('.message'); if(!msgEl||msgEl._editing)return;
-      // Two reasons a double-click must not delete: images are display:none until
-      // expanded (so both clicks land on the body and read as "delete" when the
-      // user meant "show me the image"), and a double-click on a thumbnail opens
-      // the lightbox — that must not depend on wireImageClicks having stopped
-      // propagation.
-      if(msgEl._images&&msgEl._images.length>0){
-        if(!msgEl._imagesExpanded)return;
-        if(isAttachmentTarget(e.target))return;
-      }
-      // A document card is a link; double-clicking it selects or downloads.
-      if(isAttachmentTarget(e.target))return;
-      msgEl._editing=true; const id=parseInt(msgEl.dataset.id,10); if(id)deleteMessage(msgEl,id);
-    }
+function enterEdit(id) {
+  if (S.editing && S.editing !== id) { const prev = S.editing; S.editing = null; updateMsg(prev); }
+  S.editing = id; updateMsg(id);
+  const ta = view.querySelector(`.msg[data-id="${id}"] .edit-ta`);
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+function cancelEdit() { const id = S.editing; S.editing = null; if (id) updateMsg(id); }
+async function saveEdit(id) {
+  const ta = view.querySelector(`.msg[data-id="${id}"] .edit-ta`); if (!ta) return;
+  const text = ta.value.trim(); const m = findMsg(id);
+  if (!text && !(m.images || []).length && !(m.files || []).length) { showError('Message cannot be empty'); return; }
+  try {
+    const r = await fetch(API + '/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+    if (r.ok) {
+      // The server returns the full message, attachments included.
+      const updated = await r.json().catch(() => null) || { ...m, text };
+      S.editing = null;
+      store(S.all, updated); for (const d of Object.values(S.dev)) if (d.map.has(id)) store(d.map, updated);
+      updateMsg(id);
+    } else { const err = await r.json().catch(() => ({})); showError(err.error || 'Failed to save'); }
+  } catch { showError('Failed to save. Server may be offline.'); }
+}
 
-    messageList.addEventListener('touchstart',handleTouchStart,{passive:true});
-    messageList.addEventListener('touchmove',handleTouchMove,{passive:false});
-    messageList.addEventListener('touchend',handleTouchEnd);
-    messageList.addEventListener('touchcancel',handleTouchCancel);
-    messageList.addEventListener('contextmenu',handleContextMenu);
-    messageList.addEventListener('dblclick',handleDblClick);
-    deviceMessageList.addEventListener('touchstart',handleTouchStart,{passive:true});
-    deviceMessageList.addEventListener('touchmove',handleTouchMove,{passive:false});
-    deviceMessageList.addEventListener('touchend',handleTouchEnd);
-    deviceMessageList.addEventListener('touchcancel',handleTouchCancel);
-    deviceMessageList.addEventListener('contextmenu',handleContextMenu);
-    deviceMessageList.addEventListener('dblclick',handleDblClick);
-  </script>
+// ---------- context menu ----------
+const ctxLayer = $('#ctxLayer'), ctx = $('#ctx');
+let ctxId = null;
+function openCtx(el, x, y) {
+  if (!ctxLayer.hidden) return;
+  const id = +el.dataset.id, m = findMsg(id); if (!m) return;
+  ctxId = id;
+  const atPointer = x != null && matchMedia('(pointer:fine)').matches;
+  ctx.classList.toggle('at', atPointer);
+  $('#ctxScrim').className = 'scrim' + (atPointer ? ' clear' : ' blur');
+  const preview = $('#ctxPreview');
+  preview.hidden = atPointer;
+  if (!atPointer) preview.innerHTML = `<div class="meta">${dvHTML(m.device_name)}<span class="who">${esc(m.device_name)}</span><time>${rel(m.created_at)}</time></div><div class="tx">${esc(m.text || ((m.images || []).length ? plural(m.images.length, 'Photo') : 'File'))}</div>`;
+  if (atPointer) {
+    ctx.style.left = Math.min(x, innerWidth - 262) + 'px'; ctx.style.top = Math.min(y, innerHeight - 170) + 'px'; ctx.style.transform = 'none'; ctx.style.width = 'auto';
+  } else { ctx.style.left = ''; ctx.style.top = ''; ctx.style.transform = ''; ctx.style.width = ''; }
+  ctxLayer.hidden = false;
+  ctx.querySelector('.mi').focus({ preventScroll: true });
+}
+function closeCtx() { ctxLayer.hidden = true; ctxId = null; }
+$('#ctxScrim').addEventListener('click', closeCtx);
+$('#ctxScrim').addEventListener('contextmenu', e => { e.preventDefault(); closeCtx(); });
+ctx.addEventListener('click', e => {
+  const b = e.target.closest('[data-ctx]'); if (!b) return;
+  const id = ctxId; closeCtx();
+  const m = findMsg(id); if (!m) return;
+  const el = view.querySelector(`.msg[data-id="${id}"]`);
+  if (b.dataset.ctx === 'copy' && el) copyText(m.text || '', el);
+  if (b.dataset.ctx === 'edit') enterEdit(id);
+  if (b.dataset.ctx === 'delete') deleteMessage(id, el);
+});
+
+// ---------- pull-down menus ----------
+const menuLayer = $('#menuLayer'), menu = $('#menu');
+let menuBtn = null;
+function openMenu(btn, html) {
+  if (menuBtn === btn) { closeMenu(); return; }
+  closeMenu();
+  menu.innerHTML = html;
+  const r = btn.getBoundingClientRect();
+  menu.style.top = (r.bottom + 8) + 'px';
+  menu.style.right = Math.max(12, innerWidth - r.right) + 'px';
+  menuLayer.hidden = false; menuBtn = btn; btn.setAttribute('aria-expanded', 'true');
+  menu.querySelector('.mi')?.focus({ preventScroll: true });
+}
+function closeMenu() { if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false'); menuBtn = null; menuLayer.hidden = true; }
+menuLayer.querySelector('.scrim').addEventListener('click', closeMenu);
+$('#filterBtn').addEventListener('click', e => {
+  const stats = deviceStats();
+  openMenu(e.currentTarget,
+    `<button class="mi" data-device="" role="menuitem"><span class="lab"><span>All Devices</span><small>${plural(S.all.size, 'message')}</small></span>${!S.device ? ic('check') : ''}</button><div class="mgap"></div>` +
+    stats.map(s => `<button class="mi" data-device="${esc(s.name)}" role="menuitem"><span class="lab"><span>${esc(s.name)}${s.name === getDeviceName() ? ' · This Device' : ''}</span><small>${s.count} · ${rel(s.last.created_at)}</small></span>${S.device === s.name ? ic('check') : dvHTML(s.name)}</button>`).join('') +
+    `<div class="mgap"></div><button class="mi" data-menu="rename" role="menuitem">Rename This Device…${ic('pencil')}</button>`);
+});
+$('#moreBtn').addEventListener('click', e => openMenu(e.currentTarget,
+  `<button class="mi" data-menu="new" role="menuitem">New Message${ic('plus')}</button>` +
+  `<button class="mi" data-menu="refresh" role="menuitem">Refresh${ic('refresh')}</button>` +
+  `<button class="mi" data-menu="rename" role="menuitem">Rename This Device…${ic('pencil')}</button>`));
+menu.addEventListener('click', e => {
+  const b = e.target.closest('.mi'); if (!b) return;
+  closeMenu();
+  if (b.dataset.menu === 'new') { input.focus(); }
+  if (b.dataset.menu === 'refresh') refresh();
+  if (b.dataset.menu === 'rename') openSheet();
+});
+function refresh() { poll(); reconcileAll(); }
+$('#refreshBtn').addEventListener('click', refresh);
+
+// ---------- rename sheet ----------
+const sheetLayer = $('#sheetLayer'), nameInput = $('#nameInput');
+let sheetReturn = null;
+function openSheet() {
+  sheetReturn = document.activeElement;
+  nameInput.value = getDeviceName(); sheetLayer.hidden = false;
+  nameInput.focus(); nameInput.select();
+}
+function closeSheet() { sheetLayer.hidden = true; sheetReturn?.focus?.({ preventScroll: true }); }
+function saveName() {
+  const n = nameInput.value.trim();
+  if (n) { deviceName = n; localStorage.setItem(DEVICE_KEY, n); render(); }
+  closeSheet();
+}
+$('#meBtn').addEventListener('click', openSheet);
+$('#meCard').addEventListener('click', openSheet);
+$('#sheetCancel').addEventListener('click', closeSheet);
+$('#sheetScrim').addEventListener('click', closeSheet);
+$('#sheetDone').addEventListener('click', saveName);
+nameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); saveName(); }
+  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); }
+});
+$('#sheet').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const f = [...$('#sheet').querySelectorAll('button,input')];
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+});
+
+// ---------- lightbox ----------
+const lb = $('#lb'), lbImg = $('#lbImg'), lbCopy = $('#lbCopy');
+let lbList = [], lbIdx = 0, lbBlobs = [];
+function openLightbox(list, idx) {
+  lbList = list; lbIdx = idx; lbBlobs = [];
+  showLb(); lb.hidden = false;
+  $('#lbClose').focus({ preventScroll: true });
+}
+function showLb() {
+  const im = lbList[lbIdx];
+  lbImg.src = im.url; lbImg.alt = im.original_name || '';
+  const many = lbList.length > 1;
+  $('#lbPrev').hidden = !many; $('#lbNext').hidden = !many;
+  $('#lbCount').hidden = !many; $('#lbCount').textContent = `${lbIdx + 1} / ${lbList.length}`;
+  ensureBlob(lbIdx);
+}
+function closeLightbox() { lb.hidden = true; lbImg.removeAttribute('src'); }
+const lbNav = d => { lbIdx = (lbIdx + d + lbList.length) % lbList.length; showLb(); };
+$('#lbClose').addEventListener('click', closeLightbox);
+$('#lbPrev').addEventListener('click', () => lbNav(-1));
+$('#lbNext').addEventListener('click', () => lbNav(1));
+lb.addEventListener('click', e => { if (e.target === lb) closeLightbox(); });
+// Fetch starts from the gesture that opened the lightbox, so by the time Copy is
+// pressed the blob is warm and clipboard.write() keeps its user activation.
+function ensureBlob(i) { if (!lbBlobs[i]) lbBlobs[i] = fetch(lbList[i].url).then(r => r.blob()); return lbBlobs[i]; }
+// ClipboardItem accepts image/png far more widely than jpeg/webp.
+function toPng(blob) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(blob), img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      c.toBlob(b => { URL.revokeObjectURL(url); b ? ok(b) : no(new Error('toBlob failed')); }, 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error('decode failed')); };
+    img.src = url;
+  });
+}
+lbCopy.addEventListener('click', async () => {
+  // navigator.clipboard only exists in a secure context, and http://<lan-ip> is not one.
+  // Check synchronously so the fallback opens without being treated as a popup.
+  if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
+    const url = lbList[lbIdx].url;
+    const w = window.open(url, '_blank'); if (!w) location.href = url;
+    showError('Clipboard needs HTTPS — opened the image instead. Long-press it to save or copy.');
+    return;
+  }
+  lbCopy.disabled = true;
+  try {
+    const png = await toPng(await ensureBlob(lbIdx));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    lbCopy.classList.add('done'); lbCopy.lastChild.textContent = 'Copied';
+    setTimeout(() => { lbCopy.classList.remove('done'); lbCopy.lastChild.textContent = 'Copy'; }, 1200);
+  } catch { showError('Copy failed — long-press the image to save it instead.'); }
+  finally { lbCopy.disabled = false; }
+});
+
+// ---------- composer ----------
+const input = $('#input'), sendBtn = $('#sendBtn'), att = $('#att');
+// One draft per scope (all devices, or a single device) — switching views keeps each one.
+const drafts = new Map();
+const draftKey = () => S.device || '';
+function draft() { let d = drafts.get(draftKey()); if (!d) { d = { text: '', images: [], files: [] }; drafts.set(draftKey(), d); } return d; }
+function saveDraftText() { draft().text = input.value; }
+function loadDraft() { input.value = draft().text; autosize(); renderAtt(); }
+function autosize() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 140) + 'px'; }
+input.addEventListener('input', autosize);
+
+function renderAtt() {
+  const d = draft();
+  const all = [...d.images.map(f => ['img', f]), ...d.files.map(f => ['file', f])];
+  att.hidden = !all.length;
+  if (!all.length) { att.innerHTML = ''; return; }
+  const bytes = all.reduce((s, [, f]) => s + f.size, 0);
+  att.innerHTML = all.map(([k, f], i) => {
+    if (k === 'img') { f._url = f._url || URL.createObjectURL(f); }
+    return `<span class="item" title="${esc(f.name || 'Pasted image')}">${k === 'img' ? `<img src="${f._url}" alt="">` : esc(extOf(f.name))}<button class="x" type="button" data-rm="${k}:${k === 'img' ? i : i - d.images.length}" aria-label="Remove attachment">${ic('x')}</button></span>`;
+  }).join('') + `<small>${plural(all.length, 'attachment')} · ${humanSize(bytes)}</small>`;
+}
+att.addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]'); if (!b) return;
+  const [k, i] = b.dataset.rm.split(':'); const d = draft();
+  const arr = k === 'img' ? d.images : d.files;
+  const [f] = arr.splice(+i, 1); if (f && f._url) URL.revokeObjectURL(f._url);
+  renderAtt();
+});
+$('#attachImg').addEventListener('click', () => $('#imgInput').click());
+$('#attachFile').addEventListener('click', () => $('#fileInput').click());
+$('#imgInput').addEventListener('change', e => { draft().images.push(...e.target.files); e.target.value = ''; renderAtt(); });
+$('#fileInput').addEventListener('change', e => { draft().files.push(...e.target.files); e.target.value = ''; renderAtt(); });
+document.addEventListener('paste', e => {
+  const a = document.activeElement;
+  if (a && (a === search || a === nameInput || a.classList.contains('edit-ta'))) return;
+  const items = e.clipboardData?.items; if (!items) return;
+  let added = false;
+  for (const item of items) if (item.type.startsWith('image/')) { const f = item.getAsFile(); if (f) { draft().images.push(f); added = true; } }
+  if (added) { e.preventDefault(); renderAtt(); }
+});
+
+// Reject before pushing bytes over the network; the server would only refuse them after the upload.
+function checkSize(d) {
+  if (d.images.some(f => f.size > MAX_IMAGE_BYTES)) return 'Images are limited to 5 MB';
+  if (d.files.some(f => f.size > MAX_FILE_BYTES)) return 'Files are limited to 50 MB';
+  return null;
+}
+async function sendMessage() {
+  const d = draft(), text = input.value.trim();
+  const hasAtt = d.images.length > 0 || d.files.length > 0;
+  if (!text && !hasAtt) return;
+  const sizeErr = checkSize(d); if (sizeErr) { showError(sizeErr); return; }
+  sendBtn.disabled = true;
+  try {
+    let r;
+    if (hasAtt) {
+      const fd = new FormData();
+      fd.append('device_name', getDeviceName());
+      if (text) fd.append('text', text);
+      d.images.forEach(f => fd.append('images', f));
+      d.files.forEach(f => fd.append('files', f));
+      r = await fetch(API, { method: 'POST', body: fd });
+    } else {
+      r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, device_name: getDeviceName() }) });
+    }
+    if (r.ok) {
+      input.value = ''; d.text = '';
+      d.images.forEach(f => f._url && URL.revokeObjectURL(f._url));
+      d.images = []; d.files = [];
+      renderAtt(); autosize(); poll();
+    } else { const err = await r.json().catch(() => ({})); showError(err.error || 'Failed to send'); }
+  } catch { showError('Failed to send. Server may be offline.'); }
+  finally { sendBtn.disabled = false; }
+}
+sendBtn.addEventListener('click', sendMessage);
+// Keeps the keyboard up (and the layout still) while tapping Send, attach or remove,
+// like Messages. Letting the field blur mid-tap moves the composer under the pointer.
+$('.composer').addEventListener('pointerdown', e => { if (e.target.closest('button') && document.activeElement === input) e.preventDefault(); });
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendMessage(); }
+});
+input.addEventListener('focus', () => document.body.classList.add('typing'));
+input.addEventListener('blur', () => document.body.classList.remove('typing'));
+
+// ---------- toast ----------
+const toast = $('#toast');
+function showError(msg) {
+  toast.innerHTML = ic('warn') + esc(msg); toast.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { toast.hidden = true; }, 4000);
+}
+
+// ---------- global keys ----------
+document.addEventListener('keydown', e => {
+  if (!lb.hidden) {
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lbNav(-1);
+    if (e.key === 'ArrowRight') lbNav(1);
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (!sheetLayer.hidden) { closeSheet(); return; }
+    if (!ctxLayer.hidden) { closeCtx(); return; }
+    if (!menuLayer.hidden) { closeMenu(); return; }
+  }
+  const typing = e.target.closest?.('input,textarea,[contenteditable]');
+  if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); scroller.scrollTo({ top: 0 }); search.focus(); }
+});
+
+// ---------- scroll-edge + viewport ----------
+let scrolled = false;
+scroller.addEventListener('scroll', () => {
+  const s = scroller.scrollTop > 44;
+  if (s !== scrolled) { scrolled = s; mainEl.classList.toggle('scrolled', s); }
+}, { passive: true });
+// iOS Safari ignores interactive-widget, so track the visual viewport to keep the
+// composer sitting on top of the keyboard.
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const fit = () => { document.documentElement.style.setProperty('--vvh', vv.height + 'px'); if (vv.offsetTop) window.scrollTo(0, 0); };
+  vv.addEventListener('resize', fit); fit();
+}
+
+// ---------- start ----------
+render();
+poll();
+setInterval(poll, POLL_INTERVAL);
+// Coming back to the tab is the cheapest moment to re-align.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reconcileAll(); });
+setInterval(() => document.querySelectorAll('time[data-t]').forEach(t => { t.textContent = rel(t.dataset.t); }), 30000);
+</script>
 </body>
 </html>
