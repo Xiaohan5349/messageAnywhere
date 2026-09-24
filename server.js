@@ -188,6 +188,10 @@ const app = express();
 app.use(express.json());
 
 const upload = multer({
+  // Browsers encode the filename bytes as UTF-8 but frequently omit the RFC 5987
+  // filename*= parameter, and multer defaults to latin1, which turns 中文 into
+  // the latin1 reading of the UTF-8 bytes before it ever reaches the DB.
+  defParamCharset: 'utf8',
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, file.fieldname === 'files' ? FILES_DIR : UPLOADS_DIR),
     filename: (req, file, cb) => {
