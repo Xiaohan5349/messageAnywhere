@@ -80,12 +80,22 @@ function finalizeImages(files) {
     out.push({
       path: finalPath,
       filename,
-      original_name: String(file.originalname || '').slice(0, MAX_ORIGINAL_NAME),
+      original_name: clampName(file.originalname),
       mime_type: type.mime,
       size: file.size,
     });
   }
   return out;
+}
+
+// String.slice works on UTF-16 code units, so cutting a long name at
+// MAX_ORIGINAL_NAME can split a surrogate pair. better-sqlite3 then silently
+// rewrites the lone surrogate as U+FFFD, leaving a "�" at the end of the name.
+// Slicing by code point keeps every character whole.
+function clampName(name) {
+  const s = String(name || '');
+  if (s.length <= MAX_ORIGINAL_NAME) return s;
+  return Array.from(s).slice(0, MAX_ORIGINAL_NAME).join('');
 }
 
 // Documents are delivered with Content-Disposition: attachment, so the stored
@@ -101,7 +111,7 @@ function finalizeDocuments(files) {
   return files.map(file => ({
     path: file.path,
     filename: path.basename(file.path),
-    original_name: String(file.originalname || '').slice(0, MAX_ORIGINAL_NAME),
+    original_name: clampName(file.originalname),
     mime_type: file.mimetype || 'application/octet-stream',
     size: file.size,
   }));
