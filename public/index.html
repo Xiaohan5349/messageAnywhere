@@ -3,356 +3,323 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#12101a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="">
 <title>MessageAnywhere</title>
+<script>
+// Resolve the theme before first paint so a dark-mode user never sees a light flash.
+(function () {
+  var p = 'system';
+  try { p = localStorage.getItem('theme') || 'system'; } catch (e) {}
+  var dark = p === 'dark' || (p === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+})();
+</script>
 <style>
-/* ===== Tokens — the only place colour values are written. Named by role. ===== */
+/* ===== Tokens — the only place colour values are written. Named by role.
+   Five surface levels, each a small step from the one it sits in:
+   canvas (chrome) → panel (content area) → card → raised (floating) → inset. ===== */
 :root{
-  color-scheme:light dark;
-  --bg-base:#f2f2f7;
-  --bg-platform:#f2f2f7;
-  --bg-surface:#fff;
-  --bg-surface-raised:#fff;
-  --bg-surface-alpha:rgba(255,255,255,.72);
-  --bg-sidebar:rgba(255,255,255,.72);
-  --bg-overlay:rgba(0,0,0,.25);
-  --bg-input:rgba(120,120,128,.12);
-  --bg-lightbox:rgba(0,0,0,.92);
-  --border-subtle:rgba(60,60,67,.12);
-  --border-default:rgba(60,60,67,.22);
-  --text-primary:#000;
-  --text-secondary:rgba(60,60,67,.64);
-  --text-tertiary:rgba(60,60,67,.4);
-  --accent:#007aff;
-  --accent-hover:#0a6fe0;
-  --accent-soft:rgba(0,122,255,.10);
-  --accent-soft-strong:rgba(0,122,255,.16);
-  --accent-on:#fff;
-  --status-success:#248a3d;
-  --status-success-soft:rgba(52,199,89,.16);
-  --status-online:#34c759;
-  --status-danger:#ff3b30;
-  --status-danger-soft:rgba(255,59,48,.12);
-  --danger-on:#fff;
-  --device-1:#30b0c7;--device-2:#ff9500;--device-3:#af52de;--device-4:#5856d6;--device-5:#ff2d55;
-  --dv-mix:100%;--dv-fg:#fff;
-  --on-photo:#fff;
-  --glass-filter:blur(14px) saturate(180%);
-  --glass-edge:rgba(255,255,255,.75);
-  --glass-rim-lit:rgba(255,255,255,.95);
-  --glass-rim-shade:rgba(0,0,0,.06);
-  --glass-sheen:rgba(255,255,255,.55);
-  --edge-tint:rgba(242,242,247,.6);
-  --shadow-float:0 8px 30px rgba(0,0,0,.12),0 1px 3px rgba(0,0,0,.06);
-  --shadow-lift:0 20px 60px rgba(0,0,0,.25);
-  --bg-ambient:none;
+  color-scheme:light;
+  --font:"Inter Variable","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --bg-canvas:#ebe5d9;--bg-panel:#f7f3ec;--bg-card:#fffdf9;--bg-raised:#fffefb;--bg-inset:#f2ede4;
+  --bg-hover:rgba(70,50,20,.04);--bg-active:rgba(70,50,20,.07);
+  --border-panel:rgba(70,50,20,.08);--border:rgba(70,50,20,.09);--border-strong:rgba(70,50,20,.15);
+  --edge-hi:transparent;
+  --text-1:#23201a;--text-2:#625b4f;--text-3:#7d7566;
+  --accent:#5e6ad2;--accent-hover:#5360c8;--accent-text:#4b56c0;--accent-soft:rgba(94,106,210,.14);--on-accent:#fff;
+  --ok:#17744a;--danger:#b2323e;--on-danger:#fff;
+  --scrim:rgba(40,30,15,.22);
+  --lightbox:rgba(18,14,8,.94);--on-lightbox:#f5f1ea;--lightbox-edge:rgba(245,241,234,.22);
+  --photo-shade:rgba(0,0,0,.45);--photo-label:#fff;
+  --dev-1:#2f8a80;--dev-2:#a8741f;--dev-3:#b04a6c;--dev-4:#6d55c4;--dev-5:#2f72b8;
+  /* Radius scale: each nested level is visibly tighter than its container. */
+  --r-panel:14px;--r-card:10px;--r-inner:6px;--r-tiny:4px;
+  /* The outer canvas only: paper grain and one soft light. Panels stay flat for reading. */
+  --canvas-art:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .28 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(900px 640px at 0% 0%,rgba(255,252,244,.7),transparent 62%),
+    radial-gradient(900px 700px at 100% 100%,rgba(160,128,84,.10),transparent 60%);
 }
-/* Nebula Purple — values match the reference app exactly. */
-@media (prefers-color-scheme:dark){:root{
-  --bg-base:#12101a;
-  --bg-platform:#171523;
-  --bg-surface:#1c1a2a;
-  --bg-surface-raised:#1c1a28;
-  --bg-surface-alpha:rgba(30,27,44,.85);
-  --bg-sidebar:rgba(18,16,26,.92);
-  --bg-overlay:rgba(22,20,30,.86);
-  --bg-input:rgba(255,255,255,.08);
-  --bg-bubble:rgba(40,36,56,.90);
-  --bg-code-block:rgba(0,0,0,.32);
-  --bg-code-inline:rgba(255,255,255,.085);
-  --bg-lightbox:rgba(12,10,20,.95);
-  --border-subtle:rgba(196,181,253,.10);
-  --border-default:rgba(196,181,253,.18);
-  --text-primary:#f3f0fb;
-  --text-secondary:#b6a8d9;
-  --text-tertiary:#8a7cb0;
-  --accent:#8b7cf6;
-  --accent-hover:#9d90f8;
-  --accent-soft:rgba(139,124,246,.14);
-  --accent-soft-strong:rgba(139,124,246,.22);
-  --accent-on:#0d0a1c;
-  /* derived — not in the supplied palette */
-  --status-success:#7ee0b0;
-  --status-success-soft:rgba(126,224,176,.14);
-  --status-online:#7ee0b0;
-  --status-danger:#f48aa6;
-  --status-danger-soft:rgba(244,138,166,.14);
-  --danger-on:#0d0a1c;
-  --device-1:#8fd3f4;--device-2:#f5b98a;--device-3:#d8a6f5;--device-4:#a5a8f8;--device-5:#f0d98a;
-  --dv-mix:16%;--dv-fg:initial;
-  --on-photo:#f3f0fb;
-  --glass-filter:blur(12px) saturate(140%);
-  --glass-edge:var(--border-default);
-  --glass-rim-lit:rgba(243,240,251,.30);
-  --glass-rim-shade:rgba(196,181,253,.08);
-  --glass-sheen:rgba(243,240,251,.09);
-  --edge-tint:rgba(18,16,26,.55);
-  --shadow-float:0 12px 36px rgba(6,4,14,.55);
-  --shadow-lift:0 24px 60px rgba(6,4,14,.6);
-  --bg-ambient:
-    radial-gradient(1100px 620px at 82% -8%,rgba(139,124,246,.32),transparent 60%),
-    radial-gradient(820px 520px at 12% 110%,rgba(126,96,220,.16),transparent 55%),
-    radial-gradient(1300px 820px at 48% 44%,rgba(28,24,44,.5),transparent 72%),
-    linear-gradient(165deg,#18141f 0%,#120f1c 55%,#14111e 100%);
-}}
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --bg-canvas:#0d0d0f;--bg-panel:#17171a;--bg-card:#1e1e22;--bg-raised:#232327;--bg-inset:#28282d;
+  --bg-hover:rgba(255,255,255,.035);--bg-active:rgba(255,255,255,.065);
+  --border-panel:rgba(255,255,255,.06);--border:rgba(255,255,255,.08);--border-strong:rgba(255,255,255,.12);
+  --edge-hi:rgba(255,255,255,.035);
+  --text-1:#e8e8ea;--text-2:#a3a3ab;--text-3:#83838d;
+  --accent:#5e6ad2;--accent-hover:#6b77dc;--accent-text:#8d95ee;--accent-soft:rgba(94,106,210,.22);--on-accent:#fff;
+  --ok:#4cc38a;--danger:#e5636e;--on-danger:#1a0a0c;
+  --scrim:rgba(0,0,0,.5);
+  --lightbox:rgba(8,8,10,.94);--on-lightbox:#e8e8ea;--lightbox-edge:rgba(232,232,234,.18);
+  --dev-1:#5fb3a9;--dev-2:#d4a453;--dev-3:#cf7090;--dev-4:#9b86e3;--dev-5:#5f9fe0;
+  --canvas-art:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .7 0 0 0 0 .7 0 0 0 0 .75 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(900px 640px at 0% 0%,rgba(94,106,210,.16),transparent 62%),
+    radial-gradient(900px 700px at 100% 100%,rgba(94,106,210,.06),transparent 60%);
+}
 
 /* ===== Base ===== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{overflow:hidden;background-color:var(--bg-base);color:var(--text-primary);font:17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
-button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
-button{cursor:pointer;background:none;border:0}
-input,textarea{outline:none;border:0;background:none}
+body{overflow:hidden;background:var(--bg-canvas);color:var(--text-1);font:15px/1.45 var(--font);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit;background:none;border:0;outline:none}
+button{cursor:pointer}
 [hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.ic{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* Fields show focus on their container instead. */
+input:focus-visible,textarea:focus-visible{outline:none}
+.ic{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .num{font-variant-numeric:tabular-nums}
-.glass{background:linear-gradient(160deg,var(--glass-sheen),transparent 55%),var(--bg-surface-alpha);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);border:1px solid var(--glass-edge);box-shadow:inset 1px 1px 0 var(--glass-rim-lit),inset -1px -1px 0 var(--glass-rim-shade),var(--shadow-float)}
+.t2{color:var(--text-2)}.t3{color:var(--text-3)}
+.sp{flex:1}
+kbd{font:500 11px/1 var(--mono);color:var(--text-2);border:1px solid var(--border-strong);border-radius:var(--r-tiny);padding:3px 5px;white-space:nowrap}
+.lbl{font-size:12.5px;font-weight:500;color:var(--text-3)}
 
-/* ===== Shell ===== */
-.app{height:var(--vvh,100dvh);display:grid;grid-template-columns:minmax(0,1fr);background-color:var(--bg-base);background-image:var(--bg-ambient);overflow:hidden}
-.main{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
-.scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 16px;scrollbar-width:thin;scrollbar-color:var(--border-default) transparent}
-.content{padding-bottom:12px}
+.panel{background:var(--bg-panel);border:1px solid var(--border-panel);border-radius:var(--r-panel)}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-card)}
+.raised{background:var(--bg-raised);border:1px solid var(--border-strong);border-radius:var(--r-card);box-shadow:inset 0 1px 0 var(--edge-hi)}
+.inset{background:var(--bg-inset);border:1px solid var(--border);border-radius:var(--r-inner)}
 
-/* sidebar (iPad / desktop) */
-.side{display:none;flex-direction:column;margin:12px 0 12px 12px;border-radius:26px;padding:14px 10px 12px;overflow:auto;z-index:2}
-.side.glass{background:linear-gradient(160deg,var(--glass-sheen),transparent 40%),var(--bg-sidebar)}
-.brand{font-size:22px;font-weight:700;letter-spacing:-.02em;padding:6px 10px 14px;display:flex;align-items:center;gap:8px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--status-online);flex-shrink:0}
-.dot.off{background:var(--status-danger)}
-.side h3{font-size:13px;font-weight:600;color:var(--text-secondary);padding:14px 10px 6px;display:flex;justify-content:space-between}
-.si{display:flex;align-items:center;gap:11px;min-height:40px;padding:0 10px;border-radius:12px;font-size:15px;width:100%;text-align:left}
-.si:hover{background:var(--accent-soft)}
-.si[aria-current="true"]{background:var(--accent-soft-strong);box-shadow:inset 0 0 0 1px var(--border-default)}
-.si>.ic{color:var(--accent);width:19px;height:19px}
-.si .lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.si .cnt{font-size:14px;color:var(--text-secondary)}
-.si .dv{width:26px;height:26px;border-radius:7px}
-.si .dv .ic{width:15px;height:15px}
-.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;background:var(--accent-soft);text-align:left;width:100%}
-.me .dv{width:34px;height:34px;border-radius:9px}
-.me b{display:block;font-size:15px;font-weight:600}
-.me small{font-size:12.5px;color:var(--text-secondary)}
-.me .ic.ed{margin-left:auto;color:var(--accent);width:18px}
+.btn{height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border-strong);border-radius:var(--r-inner);background:var(--bg-card);font-size:13.5px;font-weight:500;white-space:nowrap}
+.btn .ic{width:16px;height:16px}
+.btn.primary{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+.btn.ghost{background:none;border-color:transparent;color:var(--text-2)}
+.btn.red{color:var(--danger)}
+.ib{width:36px;height:36px;display:grid;place-items:center;border-radius:var(--r-inner);color:var(--text-2);flex-shrink:0}
+.ib[aria-expanded=true]{background:var(--bg-active);color:var(--text-1)}
+@media (hover:hover){
+  .ib:hover,.btn.ghost:hover{background:var(--bg-hover);color:var(--text-1)}
+  .btn:not(.ghost):not(.primary):hover{background:var(--bg-inset)}
+  .btn.primary:hover,.send:hover{background:var(--accent-hover)}
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0}
+body.offline .dot{background:var(--danger)}
+.offline-tag{display:none;font-size:12px;font-weight:600;color:var(--danger)}
+body.offline .offline-tag{display:inline}
+.dv{width:20px;height:20px;border-radius:var(--r-tiny);border:1px solid var(--border);display:grid;place-items:center;color:var(--dc);flex-shrink:0}
+.dv .ic{width:13px;height:13px}
 
-/* device tile — solid in light, quiet tint in dark */
-.dv{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;background:color-mix(in srgb,var(--dc) var(--dv-mix),transparent);color:var(--dv-fg,var(--dc));box-shadow:inset 0 0 0 1px var(--border-subtle)}
-.dv .ic{width:15px;height:15px;stroke-width:2}
+/* ===== Shell — phone first: Stream ===== */
+.app{position:fixed;inset:0;display:flex;flex-direction:column;background-color:var(--bg-canvas);background-image:var(--canvas-art)}
 
-/* scroll-edge glass + collapsing title */
-.edge{position:absolute;left:0;right:0;top:0;height:112px;z-index:4;pointer-events:none;opacity:0;transition:opacity .2s;
-  background:linear-gradient(var(--edge-tint),transparent);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);
-  -webkit-mask-image:linear-gradient(#000 40%,transparent);mask-image:linear-gradient(#000 40%,transparent)}
-.main.scrolled .edge{opacity:1}
-.nav{display:flex;align-items:center;justify-content:flex-end;gap:10px;height:56px;padding-top:8px;position:sticky;top:0;z-index:5}
-.nav .left{margin-right:auto}
-.mini{position:absolute;left:50%;top:50%;transform:translate(-50%,-30%);margin-top:4px;font-size:17px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;max-width:40%;overflow:hidden;text-overflow:ellipsis}
-.main.scrolled .mini{opacity:1;transform:translate(-50%,-50%)}
-.gbtn{height:44px;min-width:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 12px;font-size:16px;font-weight:500}
-.gbtn .ic{width:21px;height:21px}
-.gbtn.back{color:var(--accent);padding:0 14px 0 8px}
-.ggroup{display:flex;height:44px;border-radius:22px;overflow:hidden}
-.ggroup button{width:44px;display:grid;place-items:center}
-.ggroup button+button{border-left:1px solid var(--border-subtle)}
-.ggroup button[aria-expanded="true"]{color:var(--accent)}
-.big{padding:2px 4px 14px}
-.big h1{font-size:34px;font-weight:700;letter-spacing:-.025em;line-height:1.1;overflow-wrap:anywhere;transition:opacity .15s}
-.main.scrolled .big h1{opacity:0}
-.big p{font-size:15px;color:var(--text-secondary);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.big p .dot{width:7px;height:7px}
-.search{display:flex;align-items:center;gap:7px;height:40px;padding:0 6px 0 10px;border-radius:14px;background:var(--bg-input);color:var(--text-secondary);margin:0 0 20px}
-.search .ic{width:18px;height:18px}
-.search input{flex:1;min-width:0;font-size:17px;color:var(--text-primary)}
-.search input::placeholder{color:var(--text-secondary)}
-.search .clear{width:22px;height:22px;border-radius:50%;background:var(--text-tertiary);color:var(--bg-base);display:grid;place-items:center}
-.search .clear .ic{width:12px;height:12px;stroke-width:3}
+.kbhint,.wide-only{display:none}
+.main{flex:1;min-height:0;min-width:0;display:flex;position:relative}
+.listcol{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative}
+.phead{display:flex;align-items:center;gap:2px;min-height:52px;padding:env(safe-area-inset-top) 6px 0 16px;flex-shrink:0}
+.phead h1{font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0 6px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phead .back{margin-left:-10px;color:var(--accent-text)}
+.phead .back:not([hidden])+.dot{display:none}
+.tabs{display:flex;gap:2px;padding:4px;margin:0 14px 10px;border-radius:var(--r-card);background:var(--bg-panel);border:1px solid var(--border-panel);flex-shrink:0}
+.tab{flex:1;height:30px;border-radius:var(--r-inner);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:var(--text-2)}
+.tab[aria-selected=true]{background:var(--bg-raised);color:var(--text-1);font-weight:600;box-shadow:inset 0 0 0 1px var(--border-strong)}
+.tab .ti,.tab small{display:none}
+.tab b{font-weight:inherit}
+.search{display:none;align-items:center;gap:8px;height:40px;margin:0 14px 10px;padding:0 6px 0 12px;border-radius:var(--r-card);background:var(--bg-panel);border:1px solid var(--border-panel);color:var(--text-3);flex-shrink:0}
+.listcol.searching .search{display:flex}
+.search:focus-within{border-color:var(--accent)}
+.search .ic{width:16px;height:16px}
+.search input{flex:1;min-width:0;font-size:16px;color:var(--text-1)}
+.search input::placeholder{color:var(--text-3)}
+.search .clear{width:22px;height:22px;border-radius:50%;background:var(--text-3);color:var(--bg-canvas);display:grid;place-items:center}
+.search .clear .ic{width:11px;height:11px;stroke-width:3}
+.scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 12px calc(12px + var(--kb,0px));scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
 
-/* ===== Sections ===== */
-.sec{margin-bottom:26px}
-.sh{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px}
-.sh h2{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:baseline;gap:8px}
-.sh h2 span{font-size:15px;font-weight:500;color:var(--text-secondary)}
-.sh button{font-size:17px;color:var(--accent);display:flex;align-items:center;gap:2px}
-.sh button .ic{width:14px;height:14px;stroke-width:2.4}
-.empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:56px 20px;color:var(--text-secondary);font-size:15px}
-.empty b{font-size:20px;font-weight:600;color:var(--text-primary)}
-.empty.err b{color:var(--status-danger)}
-
-/* message: shared by Just In cards and list rows */
-.msg{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
-.msg img,.msg a{-webkit-touch-callout:default}
-.msg.editing{-webkit-user-select:text;user-select:text;cursor:default}
-.meta{display:flex;align-items:baseline;gap:8px;font-size:14px;color:var(--text-secondary);min-width:0}
-.who{font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
-.who:hover{color:var(--accent)}
-.meta time{white-space:nowrap;margin-left:auto}
-.tx{font-size:17px;line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:2px}
-.tx.clamp{-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
-.tx.muted{color:var(--text-secondary)}
-.more{color:var(--accent);font-size:15px;margin-top:4px}
-.reveal{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;min-height:56px;border-radius:14px;background:var(--bg-input);font-size:15px;color:var(--text-secondary)}
-.reveal .ic{width:19px}
-.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:8px;border-radius:14px;overflow:hidden;max-width:420px}
-.thumbs.one{grid-template-columns:1fr}
-.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--bg-input);cursor:zoom-in}
-.thumbs.one img{aspect-ratio:auto;max-height:360px}
-.file{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px 8px 8px;border-radius:12px;background:var(--bg-input);color:inherit;text-decoration:none;max-width:420px}
-.file:hover{background:var(--accent-soft)}
-.doc{width:30px;height:37px;border-radius:6px;display:grid;place-items:end center;padding-bottom:4px;font-size:9px;font-weight:800;flex-shrink:0;clip-path:polygon(0 0,68% 0,100% 24%,100% 100%,0 100%);
-  background:color-mix(in srgb,var(--fc) var(--dv-mix),transparent);color:var(--dv-fg,var(--fc))}
-.file .fm{flex:1;min-width:0}
-.file b{display:block;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file small{font-size:13px;color:var(--text-secondary)}
-.file>.ic{color:var(--accent);width:24px;height:24px;stroke-width:1.7}
-.flash{position:absolute;right:12px;top:10px;display:none;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:13px;font-size:13px;font-weight:600;background:var(--status-success-soft);color:var(--status-success);pointer-events:none}
-.flash .ic{width:14px;height:14px;stroke-width:2.6}
-.msg.copied .flash{display:flex;animation:pop .22s cubic-bezier(.2,.9,.3,1.3)}
-.msg.copied .meta time{visibility:hidden}
-.edit textarea{width:100%;min-height:84px;margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--bg-input);font-size:17px;line-height:1.35;resize:vertical;color:var(--text-primary);box-shadow:0 0 0 2px var(--accent)}
-.edit .acts{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
-.edit .acts small{margin-right:auto;font-size:12.5px;color:var(--text-secondary)}
-.pill{height:34px;padding:0 16px;border-radius:17px;display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;background:var(--bg-input);color:var(--accent)}
-.pill.fill{background:var(--accent);color:var(--accent-on)}
-.pill.fill:hover{background:var(--accent-hover)}
-
-/* Just In carousel */
-.just{display:grid;grid-auto-flow:column;grid-auto-columns:82%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px;scroll-padding:0 16px;align-items:start}
-.card{scroll-snap-align:start;display:flex;flex-direction:column;padding:14px 16px 16px;border-radius:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);min-height:132px}
-.card .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.card .meta{flex:1}
-.card .tx{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
-.card .tx.muted,.card .tx.body{font-weight:400;font-size:17px;letter-spacing:-.01em;line-height:1.35}
-
-/* list rows */
-.list{border-radius:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);overflow:hidden}
-.li{position:relative}
-.li+.li::before{content:"";position:absolute;top:0;right:0;left:54px;height:1px;background:var(--border-subtle);z-index:1}
-.li-in{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:var(--bg-surface);transition:transform .2s ease;position:relative}
-.li-in .dv{margin-top:1px}
-.li-in .m{flex:1;min-width:0}
-.li.swiped{background:var(--status-danger)}
-.li.swiped::after{content:"Delete";position:absolute;right:0;top:0;bottom:0;width:90px;display:grid;place-items:center;color:var(--danger-on);font-size:15px;font-weight:600}
-.li.msg:hover .li-in{background:var(--accent-soft)}
-.list .li.msg:hover .li-in{background:color-mix(in srgb,var(--accent) 6%,var(--bg-surface))}
-.frow{display:flex;align-items:center;gap:12px;min-height:62px;padding:10px 16px;color:inherit;text-decoration:none;position:relative;background:var(--bg-surface)}
-.frow+.frow::before{content:"";position:absolute;top:0;right:0;left:60px;height:1px;background:var(--border-subtle)}
-.frow:hover{background:color-mix(in srgb,var(--accent) 6%,var(--bg-surface))}
-.frow .doc{width:34px;height:42px;font-size:9.5px;padding-bottom:5px}
-.frow .fm{flex:1;min-width:0}
-.frow b{display:block;font-size:17px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.frow small{font-size:14px;color:var(--text-secondary)}
-.frow>.ic{color:var(--accent);width:26px;height:26px;stroke-width:1.7}
-
-/* photo grid */
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border-radius:24px;overflow:hidden}
-.ph{position:relative;aspect-ratio:1;display:block;overflow:hidden;background:var(--bg-input)}
-.ph img{width:100%;height:100%;object-fit:cover;display:block}
-.ph::after{content:"";position:absolute;inset:55% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.45));pointer-events:none}
-.ph span{position:absolute;left:8px;bottom:6px;z-index:1;font-size:12px;font-weight:600;color:var(--on-photo);text-shadow:0 1px 3px rgba(0,0,0,.5)}
-
-/* ===== Bottom: docked composer + tab bar ===== */
-.bottom{flex-shrink:0;padding:8px 12px calc(6px + env(safe-area-inset-bottom));background:var(--bg-surface-alpha);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter);border-top:1px solid var(--border-subtle)}
-.composer{margin-bottom:6px}
+/* The keyboard: the composer rides up on the compositor (transform only, no relayout),
+   on a curve close to the iOS keyboard's, instead of the page jumping when it resizes. */
+.bottom{flex-shrink:0;position:relative;z-index:3;padding:6px 10px calc(8px + env(safe-area-inset-bottom));background:var(--bg-canvas);
+  transform:translateY(calc(-1 * max(0px, var(--kb,0px) - env(safe-area-inset-bottom))));transition:transform .26s cubic-bezier(.25,.8,.25,1)}
 .att{display:flex;align-items:center;gap:10px;padding:6px 4px 10px;overflow-x:auto;scrollbar-width:none}
-.att .item{position:relative;width:48px;height:48px;border-radius:12px;flex-shrink:0;background:var(--bg-input);display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--text-secondary);text-transform:uppercase}
-.att img{width:100%;height:100%;object-fit:cover;border-radius:12px}
-.att .x{position:absolute;top:-5px;right:-5px;width:22px;height:22px;border-radius:50%;background:var(--text-tertiary);color:var(--bg-base);display:grid;place-items:center;border:2px solid var(--bg-base)}
-.att .x .ic{width:10px;height:10px;stroke-width:3.2}
-.att small{font-size:13px;color:var(--text-secondary);white-space:nowrap}
-.crow{display:flex;align-items:flex-end;gap:4px}
-.ib{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--text-primary);flex-shrink:0}
-.ib:hover{background:var(--accent-soft)}
-.field{flex:1;min-width:0;display:flex;align-items:flex-end;min-height:40px;padding:0 4px 0 14px;border-radius:20px;background:var(--bg-input);border:1px solid var(--border-default);transition:border-color .15s,box-shadow .15s}
-.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft-strong)}
-.field textarea{flex:1;min-width:0;resize:none;font-size:17px;line-height:22px;padding:8px 0;max-height:140px;color:var(--text-primary);display:block}
-.field textarea::placeholder{color:var(--text-secondary)}
-.send{width:32px;height:32px;margin:3px 0;border-radius:16px;display:grid;place-items:center;background:var(--accent);color:var(--accent-on);flex-shrink:0}
-.send:hover{background:var(--accent-hover)}
+.att .item{position:relative;width:48px;height:48px;border-radius:var(--r-inner);flex-shrink:0;background:var(--bg-inset);border:1px solid var(--border);display:grid;place-items:center;font:700 10px/1 var(--mono);color:var(--text-2)}
+.att img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.att .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--text-2);color:var(--bg-canvas);display:grid;place-items:center;border:2px solid var(--bg-canvas)}
+.att .x .ic{width:10px;height:10px;stroke-width:3}
+.att small{font-size:12.5px;color:var(--text-3);white-space:nowrap}
+.crow{display:flex;align-items:flex-end;gap:2px}
+.crow .ib{width:38px;height:40px}
+.field{flex:1;min-width:0;display:flex;align-items:flex-end;min-height:40px;padding:0 44px 0 14px;border-radius:var(--r-card);background:var(--bg-raised);border:1px solid var(--border-strong);transition:border-color .15s}
+.field:focus-within{border-color:var(--accent)}
+.field textarea{flex:1;min-width:0;resize:none;font-size:16px;line-height:22px;padding:8px 0;max-height:140px;color:var(--text-1);display:block}
+.field textarea::placeholder{color:var(--text-3)}
+.send{width:32px;height:32px;border-radius:var(--r-inner);display:grid;place-items:center;background:var(--accent);color:var(--on-accent);flex-shrink:0;margin:0 0 4px -40px;position:relative}
 .send:disabled{opacity:.45}
-.send .ic{width:19px;height:19px;stroke-width:2.6}
-.kbhint{display:none;visibility:hidden;gap:14px;flex-wrap:wrap;padding:8px 2px 0 88px;font-size:12.5px;color:var(--text-secondary)}
-.kbhint kbd{font:500 11.5px inherit;font-family:inherit;padding:1px 6px;border-radius:5px;background:var(--bg-input);color:var(--text-primary)}
-.tabbar{display:flex;align-items:center;margin:0 -12px;padding:0 12px;border-top:1px solid var(--border-subtle)}
-.tabs{flex:1;display:flex;height:52px}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--text-secondary)}
-.tab .ic{width:23px;height:23px}
-.tab[aria-current="true"]{color:var(--accent)}
-.sbtn{width:52px;height:52px;display:grid;place-items:center;color:var(--text-secondary)}
-.sbtn .ic{width:24px;height:24px}
+.send .ic{width:18px;height:18px;stroke-width:2.2}
+
+/* ===== Messages ===== */
+.lbl.day{margin:18px 4px 8px}
+.view>.lbl.day:first-child{margin-top:4px}
+.msg{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
+.msg img,.msg a{-webkit-touch-callout:default}
+.msg.editing{-webkit-user-select:text;user-select:text;touch-action:auto}
+.li-in{position:relative;border-radius:inherit;transition:transform .2s ease}
+/* Long-press progress: fades in after a short delay so a plain tap never flickers. */
+.li-in::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--bg-active);opacity:0;pointer-events:none}
+.msg.pressing .li-in::after{opacity:1;transition:opacity .38s linear .12s}
+.msg.swiped{background:var(--danger)}
+.msg.swiped::before{content:"Delete";position:absolute;right:0;top:0;bottom:0;width:96px;display:grid;place-items:center;color:var(--on-danger);font-size:14px;font-weight:600}
+.flash{position:absolute;right:10px;top:9px;z-index:1;display:none;align-items:center;gap:4px;height:26px;padding:0 9px;border-radius:var(--r-inner);background:var(--bg-raised);border:1px solid var(--border-strong);color:var(--ok);font-size:12.5px;font-weight:600;pointer-events:none}
+.flash .ic{width:13px;height:13px;stroke-width:2.4}
+.msg.copied .flash{display:flex;animation:pop .2s ease-out}
+
+/* Off-screen messages skip layout and paint; this is what keeps a rotation across the
+   Inbox/Stream breakpoint cheap with 200 messages. */
+.msg.card{margin-bottom:10px;overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 110px}
+.card .li-in{background:var(--bg-card);padding:11px 14px 13px}
+.mh{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-3);min-height:28px;margin-right:-8px}
+.mh time{margin-left:auto;font-size:12.5px}
+.who{font-weight:600;color:var(--text-1);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+@media (hover:hover){button.who:hover{color:var(--accent-text)}}
+.mbtn{width:32px;height:28px}
+/* Short: the text is the headline and the meta steps back onto the same line. */
+.short .li-in{display:flex;align-items:center;gap:10px;padding:10px 6px 10px 14px}
+.short .tx{flex:1;min-width:0;margin:0;font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.short .who{font-size:12.5px;font-weight:400;color:var(--text-3);max-width:30%}
+.short time{font-size:12.5px;color:var(--text-3);white-space:nowrap}
+/* Link: the destination leads; tapping it opens the page. */
+.link{display:flex;align-items:center;gap:12px;margin-top:8px;padding:10px 12px;color:inherit;text-decoration:none;max-width:560px}
+.fav{width:32px;height:32px;border-radius:var(--r-tiny);display:grid;place-items:center;font-weight:700;font-size:15px;color:var(--fc);background:var(--bg-card);border:1px solid var(--border-strong);flex-shrink:0}
+.link .fm b{display:block;font-weight:600;font-size:14.5px;overflow-wrap:anywhere}
+.link .fm small{display:block;font-size:13px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link>.ic{color:var(--accent-text)}
+@media (hover:hover){.link:hover{border-color:var(--border-strong)}}
+/* Command: mono, kept on its lines, scrolls sideways rather than wrapping. */
+.code{margin-top:8px;padding:10px 12px;font:13px/1.6 var(--mono);white-space:pre;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;color:var(--text-1);touch-action:pan-x pan-y}
+.code .pr{color:var(--text-3)}
+.msg.copied .mbtn{visibility:hidden}
+.tx{font-size:14.5px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}
+.tx.clamp{-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+.tx.muted{color:var(--text-2)}
+.more{color:var(--accent-text);font-size:13.5px;font-weight:500;margin-top:4px;padding:2px 0}
+.reveal{display:flex;align-items:center;gap:8px;margin-top:10px;min-height:42px;padding:0 12px;font-size:13.5px;color:var(--text-2)}
+.reveal .ic{width:16px;height:16px}
+.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:10px;border-radius:var(--r-inner);overflow:hidden;max-width:440px}
+.thumbs.one{grid-template-columns:1fr}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--bg-inset);cursor:zoom-in}
+.thumbs.one img{aspect-ratio:auto;max-height:360px}
+.file{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 10px;max-width:440px;color:inherit;text-decoration:none}
+.doc{width:28px;height:34px;border:1px solid var(--border-strong);border-radius:var(--r-tiny);display:grid;place-items:end center;padding-bottom:5px;font:700 9px/1 var(--mono);color:var(--fc);flex-shrink:0;background:var(--bg-card)}
+.fm{flex:1;min-width:0}
+.file b{display:block;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file small{font-size:12px;color:var(--text-3)}
+.file>.ic{color:var(--text-2)}
+@media (hover:hover){.file:hover{border-color:var(--border-strong)}}
+.edit textarea{width:100%;min-height:96px;margin-top:8px;padding:10px 12px;border-radius:var(--r-inner);background:var(--bg-inset);border:1px solid var(--accent);box-shadow:0 0 0 3px var(--accent-soft);font-size:16px;line-height:1.5;resize:vertical;color:var(--text-1)}
+.edit .acts{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
+.edit .acts small{margin-right:auto;font-size:12px;color:var(--text-3)}
+
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;border-radius:var(--r-card);overflow:hidden}
+.ph{position:relative;aspect-ratio:1;display:block;overflow:hidden;background:var(--bg-inset)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph::after{content:"";position:absolute;inset:55% 0 0;background:linear-gradient(transparent,var(--photo-shade));pointer-events:none}
+.ph span{position:absolute;left:8px;bottom:6px;z-index:1;font-size:12px;font-weight:600;color:var(--photo-label);text-shadow:0 1px 3px var(--photo-shade)}
+.flist{overflow:hidden}
+.frow{display:flex;align-items:center;gap:12px;min-height:58px;padding:9px 14px;color:inherit;text-decoration:none;position:relative}
+.frow+.frow::before{content:"";position:absolute;top:0;right:0;left:56px;height:1px;background:var(--border)}
+@media (hover:hover){.frow:hover{background:var(--bg-hover)}}
+.frow .doc{width:30px;height:36px}
+.frow b{display:block;font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow small{font-size:12.5px;color:var(--text-3)}
+.frow>.ic{color:var(--text-2)}
+.empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:64px 20px;color:var(--text-3);font-size:14px}
+.empty b{font-size:16px;font-weight:600;color:var(--text-1)}
+.empty.err b{color:var(--danger)}
 
 /* ===== Overlays ===== */
+/* Drop zone: files dragged onto the window land in the current draft. */
+.drop{position:absolute;inset:8px;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--accent);border-radius:var(--r-card);background:var(--bg-raised);color:var(--text-2);font-size:13.5px;pointer-events:none;animation:fade .12s ease-out}
+.drop b{font-size:16px;font-weight:600;color:var(--text-1)}
+.drop .ic{width:28px;height:28px;color:var(--accent-text);margin-bottom:4px}
 @keyframes fade{from{opacity:0}}
-@keyframes pop{from{transform:scale(.92);opacity:0}}
-@keyframes up{from{transform:translateY(40px)}}
-.toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);padding:10px 16px;border-radius:18px;font-size:14px;font-weight:500;color:var(--status-danger);animation:pop .22s cubic-bezier(.2,.9,.3,1.2)}
-.toast .ic{width:18px;height:18px}
+@keyframes pop{from{opacity:0;transform:scale(.97)}}
+@keyframes up{from{transform:translateY(24px);opacity:0}}
 .layer{position:fixed;inset:0;z-index:50}
-.scrim{position:absolute;inset:0;background:var(--bg-overlay);animation:fade .18s ease-out}
-.scrim.blur{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.scrim{position:absolute;inset:0;background:var(--scrim);animation:fade .15s ease-out}
 .scrim.clear{background:transparent}
-.menu{position:absolute;width:260px;border-radius:20px;overflow:hidden;animation:pop .22s cubic-bezier(.2,.9,.3,1.2);transform-origin:top right}
-.menu.glass{box-shadow:inset 1px 1px 0 var(--glass-rim-lit),inset -1px -1px 0 var(--glass-rim-shade),var(--shadow-lift)}
-.mi{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:46px;padding:8px 16px;font-size:17px;text-align:left}
-.mi+.mi{border-top:1px solid var(--border-subtle)}
-.mi:hover,.mi:focus-visible{background:var(--accent-soft);outline:0}
-.mi .ic{width:19px;height:19px}
-.mi.red{color:var(--status-danger)}
-.mi .lab{display:flex;flex-direction:column;min-width:0}
+.menu{position:absolute;min-width:220px;max-width:calc(100vw - 24px);padding:5px;animation:pop .12s ease-out;transform-origin:top right}
+.mi{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:0 10px;border-radius:var(--r-inner);font-size:14px;text-align:left}
+.mi:hover,.mi:focus-visible{background:var(--bg-active);outline:0}
+.mi>.ic{color:var(--text-2);width:16px;height:16px;margin-left:auto}
+.mi .lab{flex:1;min-width:0;display:flex;flex-direction:column}
 .mi .lab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mi small{font-size:13px;color:var(--text-secondary)}
-.mi .dv{width:24px;height:24px;border-radius:7px}
-.mi .dv .ic{width:14px;height:14px}
-.mgap{height:8px;background:var(--border-subtle)}
-.ctx{position:absolute;left:50%;top:16%;width:min(340px,calc(100% - 32px));transform:translateX(-50%)}
-.ctx .preview{padding:14px 16px;border-radius:22px;background:var(--bg-surface-raised);border:1px solid var(--border-default);box-shadow:var(--shadow-lift);animation:pop .26s cubic-bezier(.2,.9,.3,1.2)}
-.ctx .preview .tx{font-size:18px;font-weight:600;max-height:120px;overflow:hidden}
-.ctx .menu{position:relative;margin-top:10px;width:250px;transform-origin:top left}
-.ctx.at .menu{margin-top:0}
-.sheet{position:absolute;left:0;right:0;bottom:0;padding:8px 16px calc(24px + env(safe-area-inset-bottom));border-radius:34px 34px 0 0;animation:up .32s cubic-bezier(.2,.9,.25,1)}
-.grab{width:36px;height:5px;border-radius:3px;background:var(--text-tertiary);margin:0 auto 10px}
-.sbar{display:flex;align-items:center;justify-content:space-between;height:44px;margin-bottom:14px}
-.sbar h3{font-size:17px;font-weight:600}
-.sbar .gbtn{height:40px;min-width:40px;padding:0 16px}
-.sbar .done{background:var(--accent);color:var(--accent-on);font-weight:600}
-.namefield{display:flex;align-items:center;height:52px;padding:0 12px 0 16px;border-radius:16px;background:var(--bg-input);border:1px solid var(--border-default)}
-.namefield:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft-strong)}
-.namefield input{flex:1;min-width:0;font-size:17px;color:var(--text-primary)}
-.sheet .foot{font-size:13px;color:var(--text-secondary);padding:8px 16px 0}
-.lb{position:fixed;inset:0;z-index:60;background:var(--bg-lightbox);display:flex;align-items:center;justify-content:center;animation:fade .18s ease-out}
-.lb img{max-width:92vw;max-height:84vh;object-fit:contain;border-radius:6px;animation:pop .24s cubic-bezier(.2,.9,.3,1.1)}
-.lb .gbtn{position:absolute;color:var(--text-primary)}
+.mi small{font-size:12px;color:var(--text-3)}
+.mi kbd{margin-left:auto}
+.mi.red,.mi.red>.ic{color:var(--danger)}
+.mi .tick{color:var(--accent-text)}
+.msep{height:1px;background:var(--border);margin:5px -5px}
+.ctx{position:absolute;left:50%;top:16%;width:min(360px,calc(100% - 32px));transform:translateX(-50%)}
+.ctx .preview{padding:11px 14px 13px;margin-bottom:8px;animation:pop .18s ease-out}
+.ctx .preview .tx{max-height:132px;overflow:hidden}
+.ctx .menu{position:relative;width:240px}
+.ctx.at{transform:none;width:auto}
+.ctx.at .preview{display:none}
+.sheet{position:absolute;left:0;right:0;bottom:0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));border-radius:var(--r-panel) var(--r-panel) 0 0;animation:up .24s cubic-bezier(.25,.8,.25,1);
+  transform:translateY(calc(-1 * max(0px, var(--kb,0px) - env(safe-area-inset-bottom))));transition:transform .26s cubic-bezier(.25,.8,.25,1)}
+.sheet h3{font-size:16px;font-weight:600}
+.sheet p{font-size:13.5px;color:var(--text-2);margin:4px 0 14px}
+.namefield{display:flex;align-items:center;height:44px;padding:0 12px;border-radius:var(--r-inner);background:var(--bg-inset);border:1px solid var(--border-strong)}
+.namefield:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.namefield input{flex:1;min-width:0;font-size:16px}
+.sheet .ft{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);padding:10px 14px;font-size:13.5px;font-weight:500;color:var(--danger);animation:pop .16s ease-out}
+.toast .ic{width:16px;height:16px}
+.lb{position:fixed;inset:0;z-index:60;background:var(--lightbox);color:var(--on-lightbox);display:flex;align-items:center;justify-content:center;animation:fade .15s ease-out}
+.lb img{max-width:92vw;max-height:84vh;object-fit:contain;border-radius:var(--r-inner)}
+.lb .ib{position:absolute;width:40px;height:40px;border-radius:50%;color:var(--on-lightbox);border:1px solid var(--lightbox-edge)}
 .lb .close{top:calc(14px + env(safe-area-inset-top));right:14px}
-.lb .copy{top:calc(14px + env(safe-area-inset-top));left:14px;padding:0 16px}
-.lb .copy.done{color:var(--status-success)}
-.lb .prev{left:12px;top:50%;margin-top:-22px}
-.lb .next{right:12px;top:50%;margin-top:-22px}
-.lb .count{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:16px;font-size:14px;color:var(--text-primary)}
+.lb .copy{top:calc(14px + env(safe-area-inset-top));left:14px;width:auto;display:flex;gap:6px;padding:0 14px;border-radius:20px;font-size:14px;font-weight:500}
+.lb .copy.done{color:var(--ok)}
+.lb .prev{left:12px;top:50%;margin-top:-20px}
+.lb .next{right:12px;top:50%;margin-top:-20px}
+.lb .count{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:13px;color:var(--on-lightbox)}
 
-/* ===== Wide: iPad / desktop ===== */
+/* ===== Wide: the same Stream, centred in a panel; a sidebar from 1024px ===== */
+.side{display:none}
+.phead .count{display:none}
 @media (min-width:900px){
-  .app{grid-template-columns:300px minmax(0,1fr)}
-  .side{display:flex}
-  .tabbar,.ph-only{display:none!important}
-  .scroll{padding:0 36px}
-  .content{max-width:980px;margin:0 auto}
-  .bottom{padding:12px 36px 16px}
-  .composer{max-width:980px;margin:0 auto}
-  .kbhint{display:flex}
-  body.typing .kbhint{visibility:visible}
-  .grid{grid-template-columns:repeat(6,1fr)}
-  .grid.all{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-  .just{grid-auto-columns:minmax(280px,1fr);margin:0;padding:0 0 4px}
-  .sheet{left:50%;bottom:auto;top:50%;width:460px;transform:translate(-50%,-50%);border-radius:30px;animation:pop .26s cubic-bezier(.2,.9,.3,1.1);padding-bottom:24px}
-  .grab{display:none}
-  .li.msg .li-in{padding-right:96px}
+  .main{margin:8px;background:var(--bg-panel);border:1px solid var(--border-panel);border-radius:var(--r-panel);overflow:hidden}
+  .phead{width:min(760px,100%);margin:0 auto;padding-top:10px}
+  .tabs,.search{width:min(732px,calc(100% - 28px));margin:0 auto 12px;background:var(--bg-inset);border-color:var(--border)}
+  .view{max-width:736px;margin:0 auto}
+  .bottom{background:var(--bg-panel)}
+  .composer{max-width:736px;margin:0 auto}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .sheet{left:50%;right:auto;width:440px;bottom:24px;border-radius:var(--r-card);padding:20px;transform:translate(-50%,calc(-1 * var(--kb,0px)));animation:fade .14s ease-out}
 }
-@media (max-width:899px){
-  .ggroup button{width:40px}
-  .mini{font-size:16px}
-  body.typing .tabbar{display:none}
-  body.typing .bottom{padding-bottom:8px}
+@media (min-width:1024px){
+  .app{flex-direction:row}
+  .side{display:flex;flex-direction:column;gap:1px;width:248px;flex-shrink:0;padding:12px 10px;overflow-y:auto}
+  .main{margin-left:0}
+  .brand{display:flex;align-items:center;gap:8px;height:36px;padding-left:8px;margin-bottom:10px;font-weight:600;font-size:14.5px}
+  .nav{display:flex;align-items:center;gap:10px;height:34px;padding:0 9px;border-radius:var(--r-inner);color:var(--text-2);font-weight:500;font-size:14px;width:100%;text-align:left}
+  .nav .ic{width:16px;height:16px}
+  .nav .nl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nav .num{font-size:12.5px;color:var(--text-3)}
+  .nav .dv{width:18px;height:18px}
+  .nav .dv .ic{width:12px;height:12px}
+  .nav[aria-current=true]{background:var(--bg-active);color:var(--text-1)}
+  .side .lbl{display:flex;justify-content:space-between;padding:8px 9px 6px}
+  .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 9px;border-radius:var(--r-inner);text-align:left;width:100%}
+  .me b{display:block;font-weight:500;font-size:14px}
+  .me small{display:block;font-size:12px;color:var(--text-3)}
+  .me>.ic{margin-left:auto;color:var(--text-3);width:16px}
+  @media (hover:hover){.nav:hover,.me:hover{background:var(--bg-hover);color:var(--text-1)}}
+  /* Devices run down the side, sections across the top; the header drops the duplicates. */
+  .phead .js-filter,#searchToggle,.phead .back,.phead .dot,.phead .offline-tag{display:none!important}
+  .listcol{--gutter:40px}
+  .phead{width:min(840px,calc(100% - 2 * var(--gutter)));min-height:60px;padding:12px 0 0 2px;margin-left:var(--gutter)}
+  .phead h1{font-size:22px;margin-left:0}
+  .phead .count{display:inline;font-size:14px;color:var(--text-3)}
+  .tabs,.search{width:min(840px,calc(100% - 2 * var(--gutter)));margin-left:var(--gutter)}
+  .tab{gap:7px}
+  .tab .ti{display:inline-flex}
+  .tab .ti .ic{width:15px;height:15px}
+  .tab small{display:inline;margin-left:2px;font-size:12px;color:var(--text-3)}
+  .search{display:flex}
+  /* .scroll and .bottom bring their own 12px/10px side padding */
+  .view{max-width:840px;margin-left:calc(var(--gutter) - 12px)}
+  .composer{max-width:840px;margin-left:calc(var(--gutter) - 10px)}
+}
+@media (min-width:900px) and (pointer:fine){
+  .kbhint{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 4px 0 82px;font-size:12px;color:var(--text-3)}
+  .wide-only{display:inline}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
@@ -360,26 +327,32 @@ input,textarea{outline:none;border:0;background:none}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-tray" viewBox="0 0 24 24"><path d="M3 13l2.5-7.5A2 2 0 0 1 7.4 4h9.2a2 2 0 0 1 1.9 1.5L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></symbol>
-  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-8z"/><path d="M8 8h8M8 11.5h5"/></symbol>
-  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M21 15.5l-4.5-4.5L7 20"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="9.5" r="1.8"/><path d="M21 15.5l-4.5-4.5L7 20"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></symbol>
   <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15 7.2"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
   <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
-  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/><circle cx="18.5" cy="12" r=".9" fill="currentColor"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="18.5" cy="12" r="1" fill="currentColor"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></symbol>
   <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
-  <symbol id="i-dl" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v8M8.5 12.5l3.5 3.5 3.5-3.5"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3l9-16zM12 10v4M12 17.5v.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
   <symbol id="i-devices" viewBox="0 0 24 24"><rect x="3" y="4" width="13" height="10" rx="1.5"/><path d="M6 18h7"/><rect x="17" y="8" width="5" height="11" rx="1.2"/></symbol>
   <symbol id="i-iphone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 5h2"/></symbol>
   <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4.5" y="5" width="15" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></symbol>
@@ -388,77 +361,69 @@ input,textarea{outline:none;border:0;background:none}
 </svg>
 
 <div class="app">
-  <aside class="side glass" aria-label="Library and devices">
-    <div class="brand"><span class="dot" id="sideDot"></span>MessageAnywhere</div>
-    <nav id="sideTabs"></nav>
-    <h3>Devices <span class="num" id="sideDevCount"></span></h3>
-    <nav id="sideDevices"></nav>
+  <aside class="side" aria-label="Sections and devices">
+    <div class="brand"><span class="dot"></span><span>MessageAnywhere</span><span class="offline-tag">Offline</span><span class="sp"></span><button class="ib" id="themeBtn" type="button"></button></div>
+    <div class="lbl">Devices <span class="num" id="sideDevCount"></span></div>
+    <nav id="sideDevices" aria-label="Devices"></nav>
     <button class="me" id="meCard" type="button"></button>
   </aside>
 
-  <main class="main" id="main">
-    <div class="edge" aria-hidden="true"></div>
-    <div class="toast glass" id="toast" role="status" aria-live="polite" hidden></div>
-    <div class="scroll" id="scroll">
-      <div class="content">
-        <div class="nav">
-          <button class="gbtn glass left ph-only" id="meBtn" type="button" aria-label="Rename this device"></button>
-          <button class="gbtn glass back left" id="backBtn" type="button" hidden><svg class="ic"><use href="#i-left"/></svg>All Devices</button>
-          <span class="mini" id="mini"></span>
-          <div class="ggroup glass">
-            <button id="refreshBtn" type="button" aria-label="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
-            <button id="filterBtn" type="button" aria-label="Filter by device" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-filter"/></svg></button>
-            <button id="moreBtn" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-more"/></svg></button>
-          </div>
-        </div>
-        <div class="big"><h1 id="title">Everything</h1><p><span class="dot" id="statusDot"></span><span id="status">Local network</span><span id="subtitle"></span></p></div>
-        <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="search" type="text" placeholder="Text, photos and file names" autocomplete="off" enterkeyhint="search" aria-label="Search"><button class="clear" id="searchClear" type="button" aria-label="Clear search" hidden><svg class="ic"><use href="#i-x"/></svg></button></label>
-        <div id="view"><div class="empty">Loading…</div></div>
-      </div>
-    </div>
+  <main class="main">
+    <div class="listcol" id="listcol">
+      <header class="phead">
+        <button class="ib back" id="backBtn" type="button" aria-label="All devices" hidden><svg class="ic"><use href="#i-left"/></svg></button>
+        <span class="dot"></span><h1 id="title">Messages</h1><span class="count num" id="count"></span><span class="offline-tag">Offline</span>
+        <span class="sp"></span>
+        <button class="ib" id="searchToggle" type="button" aria-label="Search"><svg class="ic"><use href="#i-search"/></svg></button>
+        <button class="ib js-filter" type="button" aria-label="Filter by device" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-devices"/></svg></button>
+        <button class="ib js-more" type="button" aria-label="More" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-more"/></svg></button>
+      </header>
+      <div class="tabs" id="tabs" role="tablist" aria-label="Sections"></div>
+      <label class="search"><svg class="ic"><use href="#i-search"/></svg><input id="search" type="text" placeholder="Search text and file names" autocomplete="off" enterkeyhint="search" aria-label="Search"><kbd class="wide-only" id="searchKbd">/</kbd><button class="clear" id="searchClear" type="button" aria-label="Clear search" hidden><svg class="ic"><use href="#i-x"/></svg></button></label>
+      <div class="scroll" id="scroll"><div class="view" id="view"><div class="empty">Loading…</div></div></div>
 
-    <div class="bottom">
-      <div class="composer">
-        <div class="att" id="att" hidden></div>
-        <div class="crow">
-          <button class="ib" id="attachImg" type="button" aria-label="Attach photos"><svg class="ic"><use href="#i-photo"/></svg></button>
-          <button class="ib" id="attachFile" type="button" aria-label="Attach files"><svg class="ic"><use href="#i-clip"/></svg></button>
-          <div class="field"><textarea id="input" rows="1" maxlength="10000" placeholder="Send to all devices" enterkeyhint="send" aria-label="Message"></textarea><button class="send" id="sendBtn" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div>
+      <div class="bottom">
+        <div class="composer">
+          <div class="att" id="att" hidden></div>
+          <div class="crow">
+            <button class="ib" id="attachImg" type="button" aria-label="Attach photos"><svg class="ic"><use href="#i-photo"/></svg></button>
+            <button class="ib" id="attachFile" type="button" aria-label="Attach files"><svg class="ic"><use href="#i-clip"/></svg></button>
+            <div class="field"><textarea id="input" rows="1" maxlength="10000" placeholder="Send to all devices" enterkeyhint="send" aria-label="Message"></textarea></div>
+            <button class="send" id="sendBtn" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button>
+          </div>
+          <div class="kbhint"><span><kbd>Enter</kbd> send</span><span><kbd>Shift Enter</kbd> new line</span><span><kbd>Ctrl V</kbd> paste image</span><span>Drag files here to attach</span></div>
         </div>
-        <div class="kbhint"><span><kbd>Enter</kbd> send</span><span><kbd>Shift</kbd> + <kbd>Enter</kbd> new line</span><span><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> paste image</span><span><kbd>/</kbd> search</span></div>
       </div>
-      <nav class="tabbar" aria-label="Sections">
-        <div class="tabs" id="tabs"></div>
-        <button class="sbtn" id="searchTab" type="button" aria-label="Search"><svg class="ic"><use href="#i-search"/></svg></button>
-      </nav>
+      <input type="file" id="imgInput" accept="image/*" multiple hidden>
+      <input type="file" id="fileInput" multiple hidden>
     </div>
-    <input type="file" id="imgInput" accept="image/*" multiple hidden>
-    <input type="file" id="fileInput" multiple hidden>
+    <div class="drop" id="drop" hidden><svg class="ic"><use href="#i-clip"/></svg><b>Drop to attach</b><span>Photos up to 5 MB, other files up to 50 MB</span></div>
   </main>
 </div>
 
-<div class="layer" id="menuLayer" hidden><div class="scrim clear"></div><div class="menu glass" id="menu" role="menu"></div></div>
-<div class="layer" id="ctxLayer" hidden><div class="scrim blur" id="ctxScrim"></div><div class="ctx" id="ctx"><div class="preview" id="ctxPreview"></div><div class="menu glass" role="menu">
+<div class="toast raised" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="layer" id="menuLayer" hidden><div class="scrim clear"></div><div class="menu raised" id="menu" role="menu"></div></div>
+<div class="layer" id="ctxLayer" hidden><div class="scrim" id="ctxScrim"></div><div class="ctx" id="ctx"><div class="preview card" id="ctxPreview"></div><div class="menu raised" role="menu">
   <button class="mi" data-ctx="copy" role="menuitem">Copy<svg class="ic"><use href="#i-copy"/></svg></button>
   <button class="mi" data-ctx="edit" role="menuitem">Edit<svg class="ic"><use href="#i-pencil"/></svg></button>
-  <div class="mgap"></div>
+  <div class="msep"></div>
   <button class="mi red" data-ctx="delete" role="menuitem">Delete<svg class="ic"><use href="#i-trash"/></svg></button>
 </div></div></div>
 <div class="layer" id="sheetLayer" hidden><div class="scrim" id="sheetScrim"></div>
-  <div class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-    <div class="grab"></div>
-    <div class="sbar"><button class="gbtn glass" id="sheetCancel" type="button">Cancel</button><h3 id="sheetTitle">Device Name</h3><button class="gbtn done" id="sheetDone" type="button">Done</button></div>
+  <div class="sheet raised" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h3 id="sheetTitle">Rename this device</h3>
+    <p>Other devices see your messages under this name. Saved only on this device.</p>
     <label class="namefield"><input id="nameInput" type="text" maxlength="50" placeholder="e.g. My iPhone" autocomplete="off" enterkeyhint="done" aria-label="Device name"></label>
-    <div class="foot">Other devices see your messages under this name. Saved only on this device.</div>
+    <div class="ft"><button class="btn" id="sheetCancel" type="button">Cancel</button><button class="btn primary" id="sheetDone" type="button">Save</button></div>
   </div>
 </div>
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
-  <button class="gbtn glass copy" id="lbCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>Copy</button>
-  <button class="gbtn glass close" id="lbClose" type="button" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
-  <button class="gbtn glass prev" id="lbPrev" type="button" aria-label="Previous photo"><svg class="ic"><use href="#i-left"/></svg></button>
+  <button class="ib copy" id="lbCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg><span>Copy</span></button>
+  <button class="ib close" id="lbClose" type="button" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  <button class="ib prev" id="lbPrev" type="button" aria-label="Previous photo"><svg class="ic"><use href="#i-left"/></svg></button>
   <img id="lbImg" alt="">
-  <button class="gbtn glass next" id="lbNext" type="button" aria-label="Next photo"><svg class="ic"><use href="#i-chev"/></svg></button>
-  <div class="count glass num" id="lbCount"></div>
+  <button class="ib next" id="lbNext" type="button" aria-label="Next photo"><svg class="ic"><use href="#i-chev"/></svg></button>
+  <div class="count num" id="lbCount"></div>
 </div>
 
 <script>
@@ -469,18 +434,22 @@ const RECONCILE_EVERY = 10;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const DEVICE_KEY = 'device_name';
+const THEME_KEY = 'theme';
 const PREVIEW_LENGTH = 280;
 const PREVIEW_LENGTH_IMAGES = 80;
-// Just In cards are a glance, not a reader: shorter cut, and big type only for snippets.
-const CARD_PREVIEW_LENGTH = 140;
-const CARD_BIG_TEXT = 60;
+const LONG_PRESS_MS = 500;
+const SWIPE_DELETE_PX = 80;
 const TABS = [['everything', 'Everything', 'tray'], ['text', 'Text', 'text'], ['photos', 'Photos', 'photo'], ['files', 'Files', 'doc']];
+// From this width a sidebar carries devices and the sections become cards.
+const sideMQ = matchMedia('(min-width:1024px)');
+// A text message that starts like one of these is shown as a command.
+const COMMAND_RE = /^(\$ )?(ssh|scp|git|npm|npx|pnpm|yarn|brew|curl|wget|cd|ls|docker|kubectl|node|python3?|pip|sudo|cat|grep|export|tail|ps|kill)\b/;
 
 const $ = s => document.querySelector(s);
 const ic = (id, cls = '') => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h); return Math.abs(h); }
-const tone = s => `var(--device-${hash(String(s || '?')) % 5 + 1})`;
+const tone = s => `var(--dev-${hash(String(s || '?')) % 5 + 1})`;
 function devIcon(name) {
   const n = (name || '').toLowerCase();
   if (/ipad|tablet/.test(n)) return 'ipad';
@@ -495,6 +464,17 @@ function rel(iso) {
   if (d < 3600) return Math.floor(d / 60) + 'm ago';
   if (d < 86400) return Math.floor(d / 3600) + 'h ago';
   return Math.floor(d / 86400) + 'd ago';
+}
+const relShort = iso => rel(iso).replace(' ago', '').replace('just now', 'now');
+const timeHTML = (iso, short) => `<time class="num" data-t="${esc(iso)}"${short ? ' data-short="1"' : ''}>${short ? relShort(iso) : rel(iso)}</time>`;
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+function dayLabel(iso) {
+  const d = new Date(iso), now = new Date();
+  const diff = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  if (diff < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
 }
 function humanSize(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
 const extOf = name => ((name || '').split('.').length > 1 ? name.split('.').pop() : 'file').slice(0, 4).toUpperCase();
@@ -511,6 +491,23 @@ function getDeviceName() {
   if (/Windows/.test(ua)) return 'Windows PC';
   return 'Unknown Device';
 }
+
+// ---------- theme ----------
+let themePref = (() => { try { return localStorage.getItem(THEME_KEY) || 'system'; } catch { return 'system'; } })();
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const THEME_ICON = { system: 'auto', light: 'sun', dark: 'moon' };
+const THEME_LABEL = { system: 'System', light: 'Light', dark: 'Dark' };
+function applyTheme() {
+  const dark = themePref === 'dark' || (themePref === 'system' && darkMQ.matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  $('meta[name=theme-color]').content = getComputedStyle(document.documentElement).getPropertyValue('--bg-canvas').trim();
+}
+function cycleTheme() {
+  themePref = { system: 'light', light: 'dark', dark: 'system' }[themePref];
+  try { localStorage.setItem(THEME_KEY, themePref); } catch {}
+  applyTheme(); renderChrome();
+}
+darkMQ.addEventListener('change', () => { if (themePref === 'system') applyTheme(); });
 
 // ---------- state ----------
 // all: the global window (newest 200 + anything polled since). dev: per-device windows
@@ -531,6 +528,7 @@ function matches(m, q) {
 }
 const flatImages = list => list.flatMap(m => (m.images || []).map((im, i) => ({ ...im, m, i })));
 const flatFiles = list => list.flatMap(m => (m.files || []).map(f => ({ ...f, m })));
+const tabCounts = list => ({ everything: list.length, text: list.filter(m => m.text).length, photos: flatImages(list).length, files: flatFiles(list).length });
 function deviceStats() {
   const d = new Map();
   for (const m of S.all.values()) {
@@ -542,47 +540,39 @@ function deviceStats() {
 }
 
 // ---------- rendering ----------
-const view = $('#view'), scroller = $('#scroll'), mainEl = $('#main');
+const view = $('#view'), scroller = $('#scroll'), listcol = $('#listcol');
 let renderQueued = false;
 function scheduleRender() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); }
-function render() { renderChrome(); renderView(); }
+// A poll that lands mid-edit rebuilds the edit box; carry the typed text across.
+function render() {
+  const ta = document.querySelector('.edit-ta');
+  const keep = ta && S.editing != null ? { v: ta.value, s: ta.selectionStart, f: document.activeElement === ta } : null;
+  renderChrome(); renderView();
+  const nt = keep && document.querySelector('.edit-ta');
+  if (nt) { nt.value = keep.v; if (keep.f) { nt.focus({ preventScroll: true }); nt.setSelectionRange(keep.s, keep.s); } }
+}
 
 function renderChrome() {
-  const tabLabel = TABS.find(t => t[0] === S.tab)[1];
-  const list = scopeList();
-  const title = S.device || tabLabel;
-  $('#title').textContent = title;
-  $('#mini').textContent = title;
+  const list = scopeList(), counts = tabCounts(list), stats = deviceStats();
+  $('#title').textContent = S.device || (sideMQ.matches ? 'All devices' : 'Messages');
+  $('#count').textContent = counts.everything;
   document.title = S.device ? S.device + ' · MessageAnywhere' : 'MessageAnywhere';
-  const stats = deviceStats();
-  let sub;
-  if (S.device) {
-    const last = list[0];
-    sub = [tabLabel, plural(list.length, 'message'), last ? 'active ' + rel(last.created_at) : ''].filter(Boolean).join(' · ');
-  } else sub = plural(stats.length, 'device') + ' · ' + plural(S.all.size, 'message');
-  $('#subtitle').textContent = ' · ' + sub;
   $('#backBtn').hidden = !S.device;
-  $('#meBtn').hidden = !!S.device;
-  $('#meBtn').innerHTML = ic(devIcon(getDeviceName()));
   $('#input').placeholder = S.device ? 'Send as ' + getDeviceName() : 'Send to all devices';
-
-  const counts = { everything: list.length, text: list.length, photos: flatImages(list).length, files: flatFiles(list).length };
-  $('#sideTabs').innerHTML = TABS.map(([k, label, icon]) =>
-    `<button class="si" type="button" data-tab="${k}" aria-current="${S.tab === k}">${ic(icon)}<span class="lbl">${label}</span><span class="cnt num">${counts[k]}</span></button>`).join('');
-  $('#tabs').innerHTML = TABS.map(([k, label, icon]) =>
-    `<button class="tab" type="button" data-tab="${k}" aria-current="${S.tab === k}">${ic(icon)}${label}</button>`).join('');
+  $('#tabs').innerHTML = TABS.map(([k, label]) =>
+    `<button class="tab" type="button" role="tab" data-tab="${k}" aria-selected="${S.tab === k}"><span class="ti">${ic(TABS.find(t => t[0] === k)[2])}</span><b>${label}</b><small class="num">${counts[k]}</small></button>`).join('');
   $('#sideDevCount').textContent = stats.length;
   $('#sideDevices').innerHTML =
-    `<button class="si" type="button" data-device="" aria-current="${!S.device}">${ic('devices')}<span class="lbl">All Devices</span><span class="cnt num">${S.all.size}</span></button>` +
-    stats.map(s => `<button class="si" type="button" data-device="${esc(s.name)}" aria-current="${S.device === s.name}">${dvHTML(s.name)}<span class="lbl">${esc(s.name)}</span><span class="cnt num">${s.count}</span></button>`).join('');
-  $('#meCard').innerHTML = `${dvHTML(getDeviceName())}<span><b>${esc(getDeviceName())}</b><small>This device · tap to rename</small></span>${ic('pencil', 'ed')}`;
+    `<button class="nav" type="button" data-device="" aria-current="${!S.device}">${ic('devices')}<span class="nl">All devices</span><span class="num">${S.all.size}</span></button>` +
+    stats.map(s => `<button class="nav" type="button" data-device="${esc(s.name)}" aria-current="${S.device === s.name}">${dvHTML(s.name)}<span class="nl">${esc(s.name)}</span><span class="num">${s.count}</span></button>`).join('');
+  $('#meCard').innerHTML = `${dvHTML(getDeviceName())}<span><b>${esc(getDeviceName())}</b><small>This device</small></span>${ic('pencil')}`;
+  const tb = $('#themeBtn');
+  tb.innerHTML = ic(THEME_ICON[themePref]);
+  tb.title = 'Appearance: ' + THEME_LABEL[themePref]; tb.setAttribute('aria-label', tb.title);
 }
+sideMQ.addEventListener('change', renderChrome);
 
 function empty(title, sub, err) { return `<div class="empty${err ? ' err' : ''}"><b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>`; }
-function section(title, count, seeTab, body) {
-  return `<section class="sec"><div class="sh"><h2>${title}${count != null ? ` <span class="num">${count}</span>` : ''}</h2>` +
-    (seeTab ? `<button type="button" data-see="${seeTab}">See All${ic('chev')}</button>` : '') + `</div>${body}</section>`;
-}
 
 function viewHTML() {
   if (!S.loaded) return empty('Loading…');
@@ -594,95 +584,113 @@ function viewHTML() {
   const list = scopeList();
   const q = S.query.trim().toLowerCase();
   if (!list.length) return S.device ? empty('No messages from this device') : empty('No messages yet', 'Type something below to get started');
-  const hits = q ? list.filter(m => matches(m, q)) : list;
   const noMatch = () => empty(`No messages match “${S.query.trim()}”`);
 
   if (S.tab === 'photos') {
-    const imgs = flatImages(hits);
-    return imgs.length ? gridHTML(imgs, true) : (q ? noMatch() : empty('No photos yet', 'Photos you send show up here.'));
+    const imgs = flatImages(q ? list.filter(m => matches(m, q)) : list);
+    return imgs.length ? gridHTML(imgs) : (q ? noMatch() : empty('No photos yet', 'Photos you send show up here.'));
   }
   if (S.tab === 'files') {
     const files = q ? flatFiles(list).filter(f => (f.original_name || '').toLowerCase().includes(q) || (f.m.text || '').toLowerCase().includes(q)) : flatFiles(list);
-    return files.length ? `<div class="list">${files.map(fileRowHTML).join('')}</div>` : (q ? noMatch() : empty('No files yet', 'Documents you send show up here.'));
+    return files.length ? `<div class="flist card">${files.map(fileRowHTML).join('')}</div>` : (q ? noMatch() : empty('No files yet', 'Documents you send show up here.'));
   }
-  if (S.tab === 'text' || q) {
-    return hits.length ? `<div class="list">${hits.map(m => msgHTML(m, 'row')).join('')}</div>` : noMatch();
+  let hits = q ? list.filter(m => matches(m, q)) : list;
+  if (S.tab === 'text') hits = hits.filter(m => m.text);
+  if (!hits.length) return q ? noMatch() : empty('No text messages yet');
+  let h = '', day = null;
+  for (const m of hits) {
+    const d = dayLabel(m.created_at);
+    if (d !== day) { day = d; h += `<div class="lbl day">${esc(d)}</div>`; }
+    h += msgHTML(m);
   }
-  const just = list.slice(0, 5), rest = list.slice(5, 15);
-  const imgs = flatImages(list), files = flatFiles(list);
-  let h = section('Just In', null, null, `<div class="just">${just.map(m => msgHTML(m, 'card')).join('')}</div>`);
-  if (imgs.length) h += section('Photos', imgs.length, imgs.length > 6 ? 'photos' : null, gridHTML(imgs.slice(0, 6), false, imgs));
-  if (files.length) h += section('Files', files.length, files.length > 3 ? 'files' : null, `<div class="list">${files.slice(0, 3).map(fileRowHTML).join('')}</div>`);
-  if (rest.length) h += section('Text', list.length, 'text', `<div class="list">${rest.map(m => msgHTML(m, 'row')).join('')}</div>`);
   return h;
 }
 
-function gridHTML(shown, all, lightboxList) {
-  S.gridImgs = lightboxList || shown;
-  return `<div class="grid${all ? ' all' : ''}">` + shown.map((im, i) =>
-    `<button class="ph" type="button" data-ph="${i}" aria-label="Open photo from ${esc(im.m.device_name)}"><img src="${esc(im.url)}" alt="${esc(im.original_name)}" loading="lazy" decoding="async"><span>${esc(rel(im.m.created_at).replace(' ago', ''))}</span></button>`).join('') + '</div>';
+function gridHTML(imgs) {
+  S.gridImgs = imgs;
+  return '<div class="grid">' + imgs.map((im, i) =>
+    `<button class="ph" type="button" data-ph="${i}" aria-label="Open photo from ${esc(im.m.device_name)}"><img src="${esc(im.url)}" alt="${esc(im.original_name)}" loading="lazy" decoding="async"><span>${esc(relShort(im.m.created_at))}</span></button>`).join('') + '</div>';
 }
 
+const docHTML = name => { const ext = extOf(name); return `<span class="doc" style="--fc:${tone(ext)}">${esc(ext)}</span>`; };
 function fileRowHTML(f) {
-  const ext = extOf(f.original_name);
-  return `<a class="frow" href="${esc(f.url)}" download="${esc(f.original_name)}" title="${esc(f.original_name)}"><span class="doc" style="--fc:${tone(ext)}">${esc(ext)}</span>` +
-    `<span class="fm"><b>${esc(f.original_name)}</b><small>${esc(humanSize(f.size))} · ${esc(f.m.device_name)} · <time data-t="${esc(f.m.created_at)}">${rel(f.m.created_at)}</time></small></span>${ic('dl')}</a>`;
+  return `<a class="frow" href="${esc(f.url)}" download="${esc(f.original_name)}" title="${esc(f.original_name)}">${docHTML(f.original_name)}` +
+    `<span class="fm"><b>${esc(f.original_name)}</b><small>${esc(humanSize(f.size))} · ${esc(f.m.device_name)} · ${timeHTML(f.m.created_at)}</small></span>${ic('dl')}</a>`;
 }
-
 function filesHTML(files) {
-  return (files || []).map(f => {
-    const ext = extOf(f.original_name);
-    return `<a class="file" href="${esc(f.url)}" download="${esc(f.original_name)}" title="${esc(f.original_name)}"><span class="doc" style="--fc:${tone(ext)}">${esc(ext)}</span><span class="fm"><b>${esc(f.original_name)}</b><small>${esc(humanSize(f.size))}</small></span>${ic('dl')}</a>`;
-  }).join('');
+  return (files || []).map(f => `<a class="file inset" href="${esc(f.url)}" download="${esc(f.original_name)}" title="${esc(f.original_name)}">${docHTML(f.original_name)}<span class="fm"><b>${esc(f.original_name)}</b><small>${esc(humanSize(f.size))}</small></span>${ic('dl')}</a>`).join('');
 }
-
 function thumbsHTML(images) {
   return `<div class="thumbs${images.length === 1 ? ' one' : ''}">` + images.map((im, i) =>
     `<img class="thumb" src="${esc(im.url)}" alt="${esc(im.original_name)}" loading="lazy" decoding="async" data-idx="${i}">`).join('') + '</div>';
 }
+const revealHTML = (m, attr) => `<div class="reveal inset"${attr}>${ic('eye')}${plural(m.images.length, 'photo')} · Tap to show</div>`;
+const editHTML = text => `<div class="edit"><textarea class="edit-ta" rows="3" maxlength="10000" aria-label="Edit message">${esc(text)}</textarea>` +
+  `<div class="acts"><small>Enter to save · Shift+Enter new line · Esc to cancel</small><button class="btn" type="button" data-act="cancel-edit">Cancel</button><button class="btn primary" type="button" data-act="save-edit">Save</button></div></div>`;
+const flashHTML = `<span class="flash">${ic('check')}Copied</span>`;
 
-function msgHTML(m, kind) {
+// Plain text only: attachments keep the standard card, and a misread costs no more
+// than a font change.
+function shapeOf(m) {
+  const t = (m.text || '').trim();
+  if (!t || (m.images || []).length || (m.files || []).length || S.editing === m.id) return 'card';
+  if (/^https?:\/\/\S+$/.test(t)) return 'link';
+  if ((COMMAND_RE.test(t) || / && | \| /.test(t)) && t.length <= 600 && t.split('\n').length <= 8) return 'code';
+  if (!t.includes('\n') && t.length <= 48) return 'short';
+  return 'card';
+}
+// A malformed escape (a truncated %E4%B8) must not take the whole feed down with it.
+const safeDecode = s => { try { return decodeURI(s); } catch { return s; } };
+function linkHTML(text) {
+  let u; try { u = new URL(text.trim()); } catch { return null; }
+  const host = u.host.replace(/^www\./, '');
+  return `<a class="link inset" href="${esc(u.href)}" target="_blank" rel="noopener noreferrer">` +
+    `<span class="fav" style="--fc:${tone(host)}">${esc(host[0].toUpperCase())}</span>` +
+    `<span class="fm"><b>${esc(host)}</b><small>${esc(safeDecode(u.pathname + u.search + u.hash).replace(/^\/$/, ''))}</small></span>${ic('out')}</a>`;
+}
+
+function msgHTML(m) {
   const u = uiOf(m.id);
+  const shape = shapeOf(m);
+  const who = S.device ? `<span class="who">${esc(m.device_name)}</span>` : `<button class="who" type="button" data-act="device">${esc(m.device_name)}</button>`;
+  const menuBtn = `<button class="ib mbtn" type="button" data-act="menu" aria-label="Message actions" aria-haspopup="menu">${ic('more')}</button>`;
+  const open = cls => `<article class="msg card${cls}" data-id="${m.id}" data-kind="card" tabindex="0"><div class="li-in">`;
+  const close = `</div>${flashHTML}</article>`;
+  const head = `<div class="mh">${dvHTML(m.device_name)}${who}${timeHTML(m.created_at)}${menuBtn}</div>`;
+  if (shape === 'short') return open(' short') + `${dvHTML(m.device_name)}<span class="tx">${esc(m.text.trim())}</span>${who}${timeHTML(m.created_at)}${menuBtn}` + close;
+  if (shape === 'code') return open('') + head + `<div class="code inset">${/^\$ /.test(m.text) ? '' : '<span class="pr">$ </span>'}${esc(m.text.trim())}</div>` + close;
+  const link = shape === 'link' && linkHTML(m.text);
+  if (link) return open('') + head + link + close;
   const hasImg = (m.images || []).length > 0, hasFile = (m.files || []).length > 0;
   const editing = S.editing === m.id;
   const text = m.text || '';
-  const limit = hasImg ? PREVIEW_LENGTH_IMAGES : kind === 'card' ? CARD_PREVIEW_LENGTH : PREVIEW_LENGTH;
+  const limit = hasImg ? PREVIEW_LENGTH_IMAGES : PREVIEW_LENGTH;
   const long = text.length > limit;
   let body = '';
-  if (editing) {
-    body += `<div class="edit"><textarea class="edit-ta" rows="3" maxlength="10000" aria-label="Edit message">${esc(text)}</textarea>` +
-      `<div class="acts"><small>Enter to save · Shift+Enter new line · Esc to cancel</small><button class="pill" type="button" data-act="cancel-edit">Cancel</button><button class="pill fill" type="button" data-act="save-edit">Save</button></div></div>`;
-  } else if (text) {
-    body += `<div class="tx${long && !u.more ? ' clamp' : ''}${kind === 'card' && text.length > CARD_BIG_TEXT ? ' body' : ''}">${esc(long && !u.more ? text.slice(0, limit) + '…' : text)}</div>` +
-      (long ? `<button class="more" type="button" data-act="more">${u.more ? 'Show Less' : 'Show More'}</button>` : '');
-  } else {
-    body += `<div class="tx muted">${hasImg ? 'Photo' : 'File'}</div>`;
-  }
-  if (hasImg) body += (u.imgs || editing) ? thumbsHTML(m.images)
-    : `<div class="reveal">${ic('eye')}${plural(m.images.length, 'Photo')} · Tap to Show</div>`;
+  if (editing) body += editHTML(text);
+  else if (text) {
+    body += `<div class="tx${long && !u.more ? ' clamp' : ''}">${esc(long && !u.more ? text.slice(0, limit) + '…' : text)}</div>` +
+      (long ? `<button class="more" type="button" data-act="more">${u.more ? 'Show less' : 'Show more'}</button>` : '');
+  } else body += `<div class="tx muted">${hasImg ? 'Photo' : 'File'}</div>`;
+  if (hasImg) body += (u.imgs || editing) ? thumbsHTML(m.images) : revealHTML(m, '');
   if (hasFile) body += filesHTML(m.files);
-  const meta = `<div class="meta">${S.device ? `<span class="who">${esc(m.device_name)}</span>` : `<button class="who" type="button" data-act="device">${esc(m.device_name)}</button>`}<time data-t="${esc(m.created_at)}">${rel(m.created_at)}</time></div>`;
-  const flash = `<span class="flash">${ic('check')}Copied</span>`;
-  const cls = `msg${editing ? ' editing' : ''}`;
-  if (kind === 'card') {
-    return `<article class="card ${cls}" data-id="${m.id}" data-kind="card" tabindex="0" style="--dc:${tone(m.device_name)}"><div class="top">${dvHTML(m.device_name)}${meta}</div>${body}${flash}</article>`;
-  }
-  return `<div class="li ${cls}" data-id="${m.id}" data-kind="row" tabindex="0"><div class="li-in">${dvHTML(m.device_name)}<div class="m">${meta}${body}</div></div>${flash}</div>`;
+  return open(editing ? ' editing' : '') + head + body + close;
 }
 
+const anchorKey = el => el.dataset.id || el.getAttribute('href') || el.querySelector('img')?.getAttribute('src');
 // Keeps the message under the user's eye in place when newer items land above it.
 function renderView() {
   let anchor = null;
   if (scroller.scrollTop > 0) {
     const top = scroller.getBoundingClientRect().top;
-    for (const el of view.querySelectorAll('.li.msg,.frow,.card')) {
+    for (const el of view.querySelectorAll('.msg,.frow,.ph')) {
       const r = el.getBoundingClientRect();
-      if (r.bottom > top + 60) { anchor = { key: el.dataset.id || el.getAttribute('href'), off: r.top }; break; }
+      if (r.bottom > top + 40) { anchor = { key: anchorKey(el), off: r.top }; break; }
     }
   }
   view.innerHTML = viewHTML();
   if (anchor) {
-    const el = [...view.querySelectorAll('.li.msg,.frow,.card')].find(e => (e.dataset.id || e.getAttribute('href')) === anchor.key);
+    const el = [...view.querySelectorAll('.msg,.frow,.ph')].find(e => anchorKey(e) === anchor.key);
     if (el) scroller.scrollTop += el.getBoundingClientRect().top - anchor.off;
   }
 }
@@ -692,7 +700,7 @@ function updateMsg(id) {
   view.querySelectorAll(`.msg[data-id="${id}"]`).forEach(el => {
     if (!m) { el.remove(); return; }
     const t = document.createElement('template');
-    t.innerHTML = msgHTML(m, el.dataset.kind);
+    t.innerHTML = msgHTML(m);
     el.replaceWith(t.content.firstElementChild);
   });
 }
@@ -728,9 +736,7 @@ async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new E
 function setOnline(on) {
   if (S.online === on) return;
   S.online = on;
-  $('#status').textContent = on ? 'Local network' : 'Offline';
-  $('#statusDot').classList.toggle('off', !on);
-  $('#sideDot').classList.toggle('off', !on);
+  document.body.classList.toggle('offline', !on);
 }
 
 let polling = false, pollFailures = 0, pollCount = 0;
@@ -798,20 +804,31 @@ function setDevice(name) {
 $('#backBtn').addEventListener('click', () => setDevice(null));
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-tab]'); if (t) { setTab(t.dataset.tab); return; }
-  const d = e.target.closest('[data-device]'); if (d) { setDevice(d.dataset.device); }
+  const d = e.target.closest('[data-device]'); if (d) { closeMenu(); setDevice(d.dataset.device); }
 });
-$('#searchTab').addEventListener('click', () => { scroller.scrollTo({ top: 0 }); search.focus(); });
 
 // ---------- search ----------
 const search = $('#search');
-search.addEventListener('input', () => { S.query = search.value; $('#searchClear').hidden = !search.value; scheduleRender(); });
-$('#searchClear').addEventListener('click', () => { search.value = ''; S.query = ''; $('#searchClear').hidden = true; render(); search.focus(); });
+function openSearch() { listcol.classList.add('searching'); scroller.scrollTo({ top: 0 }); search.focus(); }
+$('#searchToggle').addEventListener('click', () => {
+  if (listcol.classList.contains('searching') && !search.value) { listcol.classList.remove('searching'); search.blur(); }
+  else openSearch();
+});
+search.addEventListener('input', () => { S.query = search.value; $('#searchClear').hidden = !search.value; $('#searchKbd').hidden = !!search.value; scheduleRender(); });
+$('#searchClear').addEventListener('click', e => {
+  e.preventDefault();
+  search.value = ''; S.query = ''; $('#searchClear').hidden = true; $('#searchKbd').hidden = false; render(); search.focus();
+});
 
 // ---------- message interactions ----------
-const isAttachment = t => !!t.closest('img.thumb, a.file, .ph');
+const isAttachment = t => !!t.closest('img.thumb, a.file, a.link, .ph');
 
-function copyText(text, el) {
-  const done = () => { el.classList.add('copied'); clearTimeout(el._flash); el._flash = setTimeout(() => el.classList.remove('copied'), 1200); };
+function flashEl(el) {
+  if (!el) return;
+  el.classList.add('copied'); clearTimeout(el._flash);
+  el._flash = setTimeout(() => el.classList.remove('copied'), 1200);
+}
+function copyText(text, done) {
   const fallback = () => {
     try {
       const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
@@ -820,23 +837,27 @@ function copyText(text, el) {
   };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
 }
+function copyMsg(id, extra) {
+  const m = findMsg(id); if (!m) return;
+  copyText(m.text || '', () => { flashEl(view.querySelector(`.msg[data-id="${id}"]`)); flashEl(extra); });
+}
 
 view.addEventListener('click', e => {
   if (Date.now() < S.suppressClickUntil) { e.preventDefault(); return; }
-  const see = e.target.closest('[data-see]'); if (see) { setTab(see.dataset.see); return; }
-  const ph = e.target.closest('.ph'); if (ph) { openLightbox(S.gridImgs.map(x => x), +ph.dataset.ph); return; }
+  const ph = e.target.closest('.ph'); if (ph) { openLightbox(S.gridImgs, +ph.dataset.ph); return; }
   const el = e.target.closest('.msg'); if (!el) return;
   const id = +el.dataset.id, m = findMsg(id); if (!m) return;
   const act = e.target.closest('[data-act]')?.dataset.act;
   // A click inside the edit UI must not dismiss it; anywhere else on the message cancels.
   if (S.editing === id) {
-    if (act === 'save-edit') saveEdit(id);
+    if (act === 'save-edit') saveEdit();
     else if (act === 'cancel-edit' || !e.target.closest('.edit')) cancelEdit();
     return;
   }
   if (act === 'device') { setDevice(m.device_name); return; }
+  if (act === 'menu') { openCtx(el); return; }
   if (act === 'more') { const u = uiOf(id); u.more = !u.more; updateMsg(id); return; }
-  if (e.target.closest('a.file')) return;
+  if (e.target.closest('a.file, a.link')) return;
   const thumb = e.target.closest('img.thumb');
   if (thumb) { openLightbox(m.images, +thumb.dataset.idx); return; }
   if ((m.images || []).length) {
@@ -846,78 +867,81 @@ view.addEventListener('click', e => {
     u.more = u.imgs;
     updateMsg(id); return;
   }
-  copyText(m.text || '', el);
+  copyMsg(id);
 });
 
 view.addEventListener('keydown', e => {
   const el = e.target.classList?.contains('msg') ? e.target : null;
-  if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.click(); }
-  if (el && (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) { e.preventDefault(); openCtx(el); }
-  if (e.target.classList?.contains('edit-ta')) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveEdit(S.editing); }
-    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
-  }
+  if (!el) return;
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+  if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); openCtx(el); }
 });
 
-view.addEventListener('dblclick', e => {
-  const thumb = e.target.closest('img.thumb');
-  const el = e.target.closest('.msg'); if (!el) return;
-  const id = +el.dataset.id, m = findMsg(id); if (!m || S.editing === id) return;
-  if (thumb) { e.stopPropagation(); openLightbox(m.images, +thumb.dataset.idx); return; }
-  // Collapsed photos: both clicks landed on the body meaning "show me", not "delete".
-  if ((m.images || []).length && !uiOf(id).imgs) return;
-  if (isAttachment(e.target) || e.target.closest('[data-act]')) return;
-  deleteMessage(id, el);
+// Tap copies (in the click handler), hold opens the menu, drag left deletes —
+// one pointer path for finger, pen and mouse.
+let P = null, lastPointer = 'mouse';
+function endPress() { if (P && P.timer) { clearTimeout(P.timer); P.timer = null; } P?.el.classList.remove('pressing'); }
+function restoreSwipe(el) {
+  const inner = el.querySelector('.li-in'); if (!inner) return;
+  inner.style.transition = ''; inner.style.transform = '';
+  setTimeout(() => el.classList.remove('swiped'), 220);
+}
+view.addEventListener('pointerdown', e => {
+  lastPointer = e.pointerType;
+  if (e.button !== 0 || P) return;
+  const el = e.target.closest('.msg');
+  if (!el || S.editing === +el.dataset.id || isAttachment(e.target) || e.target.closest('[data-act],a,button')) return;
+  P = { el, id: +el.dataset.id, x: e.clientX, y: e.clientY, dx: 0, swiping: false, pid: e.pointerId, mouse: e.pointerType === 'mouse' };
+  el.classList.add('pressing');
+  P.timer = setTimeout(() => {
+    if (!P || P.swiping) return;
+    P.timer = null; el.classList.remove('pressing');
+    // The release that follows must not also count as a tap-to-copy.
+    S.suppressClickUntil = Date.now() + 700;
+    if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8);
+    openCtx(el, P.mouse ? P.x : null, P.mouse ? P.y : null);
+  }, LONG_PRESS_MS);
 });
+view.addEventListener('pointermove', e => {
+  if (!P || e.pointerId !== P.pid) return;
+  const dx = e.clientX - P.x, dy = e.clientY - P.y;
+  if (!P.swiping) {
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) endPress();
+    // A mostly-vertical drag is a scroll: neither a swipe nor a hold.
+    if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { P = null; return; }
+    if (dx < -10 && Math.abs(dx) > Math.abs(dy)) {
+      P.swiping = true; P.el.classList.add('swiped');
+      try { P.el.setPointerCapture(e.pointerId); } catch {}
+    }
+  }
+  if (!P.swiping) return;
+  P.dx = Math.max(-140, Math.min(0, dx));
+  const inner = P.el.querySelector('.li-in'); inner.style.transition = 'none'; inner.style.transform = `translateX(${P.dx}px)`;
+});
+function pointerFinish(cancelled) {
+  if (!P) return;
+  endPress();
+  if (P.swiping) {
+    const inner = P.el.querySelector('.li-in'); inner.style.transition = '';
+    S.suppressClickUntil = Date.now() + 400;
+    if (!cancelled && P.dx < -SWIPE_DELETE_PX) { inner.style.transform = 'translateX(-110%)'; deleteMessage(P.id, P.el); }
+    else restoreSwipe(P.el);
+  }
+  P = null;
+}
+view.addEventListener('pointerup', () => pointerFinish(false));
+// iOS takes over the gesture mid-scroll and cancels the pointer.
+view.addEventListener('pointercancel', () => pointerFinish(true));
 
 view.addEventListener('contextmenu', e => {
   const el = e.target.closest('.msg'); if (!el || S.editing === +el.dataset.id) return;
   // Right-clicking an attachment belongs to the browser's own save/copy menu.
   if (isAttachment(e.target)) return;
   e.preventDefault();
-  openCtx(el, e.pointerType === 'touch' ? null : e.clientX, e.pointerType === 'touch' ? null : e.clientY);
+  // A touch hold already means "copy"; Android also reports it as a contextmenu.
+  if (lastPointer !== 'mouse') return;
+  openCtx(el, e.clientX, e.clientY);
 });
-
-// Swipe-left to delete (list rows) and long-press for the menu (rows and cards).
-let T = null;
-const cancelLongPress = () => { if (T && T.timer) { clearTimeout(T.timer); T.timer = null; } };
-view.addEventListener('touchstart', e => {
-  if (e.touches.length !== 1) { T = null; return; }
-  const el = e.target.closest('.msg');
-  if (!el || S.editing === +el.dataset.id || isAttachment(e.target) || e.target.closest('[data-act]')) { T = null; return; }
-  const t = e.touches[0];
-  T = { el, x: t.clientX, y: t.clientY, dx: 0, swiping: false, canSwipe: el.dataset.kind === 'row' };
-  T.timer = setTimeout(() => { if (T && !T.swiping) { T.timer = null; S.suppressClickUntil = Date.now() + 700; openCtx(T.el); } }, 500);
-}, { passive: true });
-view.addEventListener('touchmove', e => {
-  if (!T) return;
-  const dx = e.touches[0].clientX - T.x, dy = e.touches[0].clientY - T.y;
-  // A mostly-vertical drag is a scroll: neither a swipe nor a long press.
-  if (!T.swiping && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { cancelLongPress(); T = null; return; }
-  if (Math.abs(dx) > 10) cancelLongPress();
-  if (T.canSwipe && !T.swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) { T.swiping = true; T.el.classList.add('swiped'); }
-  if (!T.swiping) return;
-  e.preventDefault();
-  T.dx = Math.max(-120, Math.min(0, dx));
-  const inner = T.el.querySelector('.li-in'); inner.style.transition = 'none'; inner.style.transform = `translateX(${T.dx}px)`;
-}, { passive: false });
-function restoreSwipe(el) {
-  const inner = el.querySelector('.li-in'); if (!inner) return;
-  inner.style.transition = ''; inner.style.transform = '';
-  setTimeout(() => el.classList.remove('swiped'), 250);
-}
-view.addEventListener('touchend', () => {
-  cancelLongPress(); if (!T) return;
-  if (T.swiping) {
-    const inner = T.el.querySelector('.li-in'); inner.style.transition = '';
-    S.suppressClickUntil = Date.now() + 400;
-    if (T.dx < -80) { inner.style.transform = 'translateX(-120%)'; deleteMessage(+T.el.dataset.id, T.el); }
-    else restoreSwipe(T.el);
-  }
-  T = null;
-});
-// iOS takes over the gesture mid-scroll and never fires touchend.
-view.addEventListener('touchcancel', () => { cancelLongPress(); if (T && T.swiping) restoreSwipe(T.el); T = null; });
 
 async function deleteMessage(id, el) {
   try {
@@ -931,15 +955,21 @@ async function deleteMessage(id, el) {
 }
 
 function enterEdit(id) {
-  if (S.editing && S.editing !== id) { const prev = S.editing; S.editing = null; updateMsg(prev); }
-  S.editing = id; updateMsg(id);
-  const ta = view.querySelector(`.msg[data-id="${id}"] .edit-ta`);
+  const prev = S.editing;
+  S.editing = id;
+  if (prev && prev !== id) updateMsg(prev);
+  updateMsg(id);
+  const ta = document.querySelector('.edit-ta');
   if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
 }
-function cancelEdit() { const id = S.editing; S.editing = null; if (id) updateMsg(id); }
-async function saveEdit(id) {
-  const ta = view.querySelector(`.msg[data-id="${id}"] .edit-ta`); if (!ta) return;
-  const text = ta.value.trim(); const m = findMsg(id);
+function cancelEdit() {
+  const id = S.editing; S.editing = null;
+  if (id == null) return;
+  updateMsg(id);
+}
+async function saveEdit() {
+  const id = S.editing, ta = document.querySelector('.edit-ta'); if (id == null || !ta) return;
+  const text = ta.value.trim(); const m = findMsg(id); if (!m) return;
   if (!text && !(m.images || []).length && !(m.files || []).length) { showError('Message cannot be empty'); return; }
   try {
     const r = await fetch(API + '/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
@@ -953,6 +983,7 @@ async function saveEdit(id) {
   } catch { showError('Failed to save. Server may be offline.'); }
 }
 
+
 // ---------- context menu ----------
 const ctxLayer = $('#ctxLayer'), ctx = $('#ctx');
 let ctxId = null;
@@ -962,27 +993,24 @@ function openCtx(el, x, y) {
   ctxId = id;
   const atPointer = x != null && matchMedia('(pointer:fine)').matches;
   ctx.classList.toggle('at', atPointer);
-  $('#ctxScrim').className = 'scrim' + (atPointer ? ' clear' : ' blur');
-  const preview = $('#ctxPreview');
-  preview.hidden = atPointer;
-  if (!atPointer) preview.innerHTML = `<div class="meta">${dvHTML(m.device_name)}<span class="who">${esc(m.device_name)}</span><time>${rel(m.created_at)}</time></div><div class="tx">${esc(m.text || ((m.images || []).length ? plural(m.images.length, 'Photo') : 'File'))}</div>`;
-  if (atPointer) {
-    ctx.style.left = Math.min(x, innerWidth - 262) + 'px'; ctx.style.top = Math.min(y, innerHeight - 170) + 'px'; ctx.style.transform = 'none'; ctx.style.width = 'auto';
-  } else { ctx.style.left = ''; ctx.style.top = ''; ctx.style.transform = ''; ctx.style.width = ''; }
+  $('#ctxScrim').className = 'scrim' + (atPointer ? ' clear' : '');
+  if (!atPointer) $('#ctxPreview').innerHTML = `<div class="mh">${dvHTML(m.device_name)}<span class="who">${esc(m.device_name)}</span><time>${rel(m.created_at)}</time></div><div class="tx">${esc(m.text || ((m.images || []).length ? plural(m.images.length, 'Photo') : 'File'))}</div>`;
+  if (atPointer) { ctx.style.left = Math.min(x, innerWidth - 250) + 'px'; ctx.style.top = Math.min(y, innerHeight - 140) + 'px'; }
+  else { ctx.style.left = ''; ctx.style.top = ''; }
   ctxLayer.hidden = false;
   ctx.querySelector('.mi').focus({ preventScroll: true });
 }
 function closeCtx() { ctxLayer.hidden = true; ctxId = null; }
-$('#ctxScrim').addEventListener('click', closeCtx);
+// A hold opens this menu under the finger; the release must not land on the scrim and close it.
+$('#ctxScrim').addEventListener('click', () => { if (Date.now() >= S.suppressClickUntil) closeCtx(); });
 $('#ctxScrim').addEventListener('contextmenu', e => { e.preventDefault(); closeCtx(); });
 ctx.addEventListener('click', e => {
   const b = e.target.closest('[data-ctx]'); if (!b) return;
   const id = ctxId; closeCtx();
   const m = findMsg(id); if (!m) return;
-  const el = view.querySelector(`.msg[data-id="${id}"]`);
-  if (b.dataset.ctx === 'copy' && el) copyText(m.text || '', el);
+  if (b.dataset.ctx === 'copy') copyMsg(id);
   if (b.dataset.ctx === 'edit') enterEdit(id);
-  if (b.dataset.ctx === 'delete') deleteMessage(id, el);
+  if (b.dataset.ctx === 'delete') deleteMessage(id, view.querySelector(`.msg[data-id="${id}"]`));
 });
 
 // ---------- pull-down menus ----------
@@ -993,33 +1021,34 @@ function openMenu(btn, html) {
   closeMenu();
   menu.innerHTML = html;
   const r = btn.getBoundingClientRect();
-  menu.style.top = (r.bottom + 8) + 'px';
+  menu.style.top = (r.bottom + 6) + 'px';
   menu.style.right = Math.max(12, innerWidth - r.right) + 'px';
   menuLayer.hidden = false; menuBtn = btn; btn.setAttribute('aria-expanded', 'true');
   menu.querySelector('.mi')?.focus({ preventScroll: true });
 }
 function closeMenu() { if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false'); menuBtn = null; menuLayer.hidden = true; }
 menuLayer.querySelector('.scrim').addEventListener('click', closeMenu);
-$('#filterBtn').addEventListener('click', e => {
+document.querySelectorAll('.js-filter').forEach(b => b.addEventListener('click', e => {
   const stats = deviceStats();
   openMenu(e.currentTarget,
-    `<button class="mi" data-device="" role="menuitem"><span class="lab"><span>All Devices</span><small>${plural(S.all.size, 'message')}</small></span>${!S.device ? ic('check') : ''}</button><div class="mgap"></div>` +
-    stats.map(s => `<button class="mi" data-device="${esc(s.name)}" role="menuitem"><span class="lab"><span>${esc(s.name)}${s.name === getDeviceName() ? ' · This Device' : ''}</span><small>${s.count} · ${rel(s.last.created_at)}</small></span>${S.device === s.name ? ic('check') : dvHTML(s.name)}</button>`).join('') +
-    `<div class="mgap"></div><button class="mi" data-menu="rename" role="menuitem">Rename This Device…${ic('pencil')}</button>`);
-});
-$('#moreBtn').addEventListener('click', e => openMenu(e.currentTarget,
-  `<button class="mi" data-menu="new" role="menuitem">New Message${ic('plus')}</button>` +
+    `<button class="mi" data-device="" role="menuitem"><span class="lab"><span>All devices</span><small>${plural(S.all.size, 'message')}</small></span>${!S.device ? ic('check', 'tick') : ''}</button><div class="msep"></div>` +
+    stats.map(s => `<button class="mi" data-device="${esc(s.name)}" role="menuitem">${dvHTML(s.name)}<span class="lab"><span>${esc(s.name)}${s.name === getDeviceName() ? ' · This device' : ''}</span><small>${s.count} · ${rel(s.last.created_at)}</small></span>${S.device === s.name ? ic('check', 'tick') : ''}</button>`).join('') +
+    `<div class="msep"></div><button class="mi" data-menu="rename" role="menuitem">Rename this device…${ic('pencil')}</button>`);
+}));
+document.querySelectorAll('.js-more').forEach(b => b.addEventListener('click', e => openMenu(e.currentTarget,
+  `<button class="mi" data-menu="new" role="menuitem">New message${ic('plus')}</button>` +
   `<button class="mi" data-menu="refresh" role="menuitem">Refresh${ic('refresh')}</button>` +
-  `<button class="mi" data-menu="rename" role="menuitem">Rename This Device…${ic('pencil')}</button>`));
+  `<button class="mi" data-menu="rename" role="menuitem">Rename this device…${ic('pencil')}</button>` +
+  `<div class="msep"></div><button class="mi" data-menu="theme" role="menuitem"><span class="lab"><span>Appearance</span><small>${THEME_LABEL[themePref]}</small></span>${ic(THEME_ICON[themePref])}</button>`)));
 menu.addEventListener('click', e => {
-  const b = e.target.closest('.mi'); if (!b) return;
+  const b = e.target.closest('.mi'); if (!b || !b.dataset.menu) return;
   closeMenu();
-  if (b.dataset.menu === 'new') { input.focus(); }
+  if (b.dataset.menu === 'new') input.focus();
   if (b.dataset.menu === 'refresh') refresh();
   if (b.dataset.menu === 'rename') openSheet();
+  if (b.dataset.menu === 'theme') cycleTheme();
 });
 function refresh() { poll(); reconcileAll(); }
-$('#refreshBtn').addEventListener('click', refresh);
 
 // ---------- rename sheet ----------
 const sheetLayer = $('#sheetLayer'), nameInput = $('#nameInput');
@@ -1035,8 +1064,8 @@ function saveName() {
   if (n) { deviceName = n; localStorage.setItem(DEVICE_KEY, n); render(); }
   closeSheet();
 }
-$('#meBtn').addEventListener('click', openSheet);
 $('#meCard').addEventListener('click', openSheet);
+$('#themeBtn').addEventListener('click', cycleTheme);
 $('#sheetCancel').addEventListener('click', closeSheet);
 $('#sheetScrim').addEventListener('click', closeSheet);
 $('#sheetDone').addEventListener('click', saveName);
@@ -1100,11 +1129,12 @@ lbCopy.addEventListener('click', async () => {
     return;
   }
   lbCopy.disabled = true;
+  const label = lbCopy.querySelector('span');
   try {
     const png = await toPng(await ensureBlob(lbIdx));
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-    lbCopy.classList.add('done'); lbCopy.lastChild.textContent = 'Copied';
-    setTimeout(() => { lbCopy.classList.remove('done'); lbCopy.lastChild.textContent = 'Copy'; }, 1200);
+    lbCopy.classList.add('done'); label.textContent = 'Copied';
+    setTimeout(() => { lbCopy.classList.remove('done'); label.textContent = 'Copy'; }, 1200);
   } catch { showError('Copy failed — long-press the image to save it instead.'); }
   finally { lbCopy.disabled = false; }
 });
@@ -1151,6 +1181,29 @@ document.addEventListener('paste', e => {
   if (added) { e.preventDefault(); renderAtt(); }
 });
 
+// Only these formats pass the server's image sniffing; anything else (HEIC, SVG, TIFF)
+// travels as a plain file instead of failing the whole upload.
+const IMAGE_DROP_TYPES = /^image\/(png|jpeg|gif|webp|bmp)$/;
+function addFiles(list) {
+  const d = draft();
+  for (const f of list) (IMAGE_DROP_TYPES.test(f.type) ? d.images : d.files).push(f);
+  renderAtt();
+}
+// dragenter/dragleave also fire when crossing child elements, so count rather than toggle.
+const drop = $('#drop');
+let dragDepth = 0;
+const draggingFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+const endDrag = () => { dragDepth = 0; drop.hidden = true; };
+addEventListener('dragenter', e => { if (!draggingFiles(e)) return; e.preventDefault(); dragDepth++; drop.hidden = false; });
+addEventListener('dragleave', e => { if (!draggingFiles(e)) return; if (--dragDepth <= 0) endDrag(); });
+// Without this the browser opens a dropped file in place of the app.
+addEventListener('dragover', e => { if (draggingFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+addEventListener('drop', e => {
+  if (!draggingFiles(e)) return;
+  e.preventDefault(); endDrag();
+  if (e.dataTransfer.files.length) { addFiles(e.dataTransfer.files); input.focus(); }
+});
+
 // Reject before pushing bytes over the network; the server would only refuse them after the upload.
 function checkSize(d) {
   if (d.images.some(f => f.size > MAX_IMAGE_BYTES)) return 'Images are limited to 5 MB';
@@ -1191,8 +1244,6 @@ $('.composer').addEventListener('pointerdown', e => { if (e.target.closest('butt
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendMessage(); }
 });
-input.addEventListener('focus', () => document.body.classList.add('typing'));
-input.addEventListener('blur', () => document.body.classList.remove('typing'));
 
 // ---------- toast ----------
 const toast = $('#toast');
@@ -1214,31 +1265,47 @@ document.addEventListener('keydown', e => {
     if (!ctxLayer.hidden) { closeCtx(); return; }
     if (!menuLayer.hidden) { closeMenu(); return; }
   }
-  const typing = e.target.closest?.('input,textarea,[contenteditable]');
-  if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); scroller.scrollTo({ top: 0 }); search.focus(); }
+  if (e.target.classList?.contains('edit-ta')) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+    return;
+  }
+  if (e.target.closest?.('input,textarea,[contenteditable]') || e.altKey) return;
+  if (!sheetLayer.hidden || !ctxLayer.hidden || !menuLayer.hidden) return;
+  if (e.key === '/' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); openSearch(); return; }
 });
 
-// ---------- scroll-edge + viewport ----------
-let scrolled = false;
-scroller.addEventListener('scroll', () => {
-  const s = scroller.scrollTop > 44;
-  if (s !== scrolled) { scrolled = s; mainEl.classList.toggle('scrolled', s); }
-}, { passive: true });
-// iOS Safari ignores interactive-widget, so track the visual viewport to keep the
-// composer sitting on top of the keyboard.
+// ---------- keyboard + viewport (phone) ----------
+// iOS keeps the layout viewport full height and only shrinks the visual viewport, so
+// fixed content sits under the keyboard. Measure the overlap and hand it to CSS (--kb);
+// the composer then slides up on the compositor. Android with resizes-content shrinks
+// the layout itself, so the overlap there is 0.
 if (window.visualViewport) {
-  const vv = window.visualViewport;
-  const fit = () => { document.documentElement.style.setProperty('--vvh', vv.height + 'px'); if (vv.offsetTop) window.scrollTo(0, 0); };
-  vv.addEventListener('resize', fit); fit();
+  const vv = window.visualViewport, root = document.documentElement;
+  let raf = 0;
+  const fit = () => {
+    raf = 0;
+    const kb = vv.scale > 1.01 ? 0 : Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+    root.style.setProperty('--kb', kb + 'px');
+    // iOS also pans the page to "reveal" a field; undo it so the header stays put.
+    if (vv.offsetTop > 0 && vv.scale <= 1.01 && document.activeElement?.matches('input,textarea')) window.scrollTo(0, 0);
+  };
+  const queue = () => { if (!raf) raf = requestAnimationFrame(fit); };
+  vv.addEventListener('resize', queue); vv.addEventListener('scroll', queue); fit();
 }
+// Dragging the list while typing puts the keyboard away, as in Messages.
+let dragY = null;
+scroller.addEventListener('touchstart', e => { dragY = document.activeElement === input ? e.touches[0].clientY : null; }, { passive: true });
+scroller.addEventListener('touchmove', e => { if (dragY != null && Math.abs(e.touches[0].clientY - dragY) > 24) { dragY = null; input.blur(); } }, { passive: true });
 
 // ---------- start ----------
+applyTheme();
 render();
 poll();
 setInterval(poll, POLL_INTERVAL);
 // Coming back to the tab is the cheapest moment to re-align.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) reconcileAll(); });
-setInterval(() => document.querySelectorAll('time[data-t]').forEach(t => { t.textContent = rel(t.dataset.t); }), 30000);
+setInterval(() => document.querySelectorAll('time[data-t]').forEach(t => { t.textContent = t.dataset.short ? relShort(t.dataset.t) : rel(t.dataset.t); }), 30000);
 </script>
 </body>
 </html>
