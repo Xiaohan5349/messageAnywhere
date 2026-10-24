@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const os = require('os');
+const QRCode = require('qrcode');
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -12,6 +14,7 @@ const UPLOADS_DIR = path.join(ROOT, 'uploads');
 // anything placed there has a second reachable path. files/ has no static route
 // and is only reachable through the download handler below.
 const FILES_DIR = path.join(ROOT, 'files');
+// Read-only now: the legacy archive, consulted only by pruneOrphanAttachments.
 const HISTORY_DIR = path.join(ROOT, 'history');
 const DB_PATH = path.join(ROOT, 'messages.db');
 
@@ -130,6 +133,15 @@ db.exec(`
   )
 `);
 
+// starred_at: a starred message never expires. retain_from: where the 7-day clock
+// starts when it is not created_at — unstarring an old message restarts it, so the
+// message does not vanish in the next hourly sweep.
+for (const col of ['starred_at', 'retain_from']) {
+  const has = db.prepare('PRAGMA table_info(messages)').all().some(c => c.name === col);
+  if (!has) db.exec(`ALTER TABLE messages ADD COLUMN ${col} TEXT`);
+}
+const MSG_COLS = 'id, text, device_name, created_at, starred_at, retain_from';
+
 // images -> attachments. The row has to outlive its message so it can remember
 // when the file should leave disk, which the old NOT NULL / ON DELETE CASCADE
 // made impossible. Idempotent: only runs when the old table is still present.
@@ -219,51 +231,23 @@ const upload = multer({
   }
 });
 
-// Message expiry cleanup: archive messages older than 7 days to history/ then delete from DB.
+// Message expiry: delete unstarred messages whose 7-day clock has run out.
 // created_at is stored as ISO-8601 with a 'T' separator, so the cutoff must use the
 // same shape — comparing against datetime()'s space-separated form silently made
 // every message created on the cutoff date survive for an extra day.
 function cleanupExpired() {
   try {
     const cutoff = `strftime('%Y-%m-%dT%H:%M:%S','now','-${RETENTION_DAYS} days')`;
-    const expired = db.prepare(`
-      SELECT m.id, m.text, m.device_name, m.created_at,
-             a.kind, a.filename, a.original_name, a.mime_type, a.size
-      FROM messages m
-      LEFT JOIN attachments a ON a.message_id = m.id
-      WHERE m.created_at < ${cutoff}
-      ORDER BY m.id ASC, a.id ASC
-    `).all();
+    const ids = db.prepare(`
+      SELECT id FROM messages
+      WHERE starred_at IS NULL AND COALESCE(retain_from, created_at) < ${cutoff}
+    `).all().map(r => r.id);
 
-    if (expired.length === 0) return;
-
-    const byMsg = {};
-    for (const row of expired) {
-      if (!byMsg[row.id]) {
-        byMsg[row.id] = { id: row.id, text: row.text, device_name: row.device_name, created_at: row.created_at, attachments: [] };
-      }
-      if (row.filename) byMsg[row.id].attachments.push(row);
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    if (!fs.existsSync(HISTORY_DIR)) fs.mkdirSync(HISTORY_DIR, { recursive: true });
-    const logPath = path.join(HISTORY_DIR, today + '.log');
-    const lines = [];
-    for (const msg of Object.values(byMsg)) {
-      lines.push('='.repeat(60));
-      lines.push(`${msg.created_at} | ${msg.device_name}`);
-      if (msg.text) lines.push(msg.text);
-      for (const a of msg.attachments) {
-        lines.push(`  [${a.kind}: ${a.filename} — ${a.original_name}, ${a.mime_type}, ${a.size} bytes]`);
-      }
-      lines.push('='.repeat(60));
-    }
-    fs.appendFileSync(logPath, lines.join('\n') + '\n', 'utf-8');
+    if (ids.length === 0) return;
 
     // The attachment rows must survive the message so they can schedule their own
     // removal from disk. Must happen before the delete, because the FK's
     // ON DELETE SET NULL fires during it.
-    const ids = [...new Set(expired.map(r => r.id))];
     const placeholders = ids.map(() => '?').join(',');
     const diskExpireAt = new Date(Date.now() + ATTACHMENT_RETENTION_DAYS * 86400000).toISOString();
     db.prepare(
@@ -272,14 +256,14 @@ function cleanupExpired() {
 
     const result = db.prepare(`DELETE FROM messages WHERE id IN (${placeholders})`).run(...ids);
 
-    console.log(`Archived and removed ${result.changes} expired message(s) to ${logPath}`);
+    console.log(`Removed ${result.changes} expired message(s)`);
   } catch (err) {
     console.error('cleanupExpired failed:', err.message);
   }
 }
 
 // Second half of the lifecycle: once disk_expire_at has passed, the file is of no
-// use to anyone and the archive only kept its metadata, so remove both.
+// use to anyone, so remove both it and its row.
 function cleanupExpiredAttachments() {
   try {
     // Computed in JS rather than passed as a SQL expression: binding
@@ -300,12 +284,11 @@ function cleanupExpiredAttachments() {
   }
 }
 
-// Attachments outlive their message by ATTACHMENT_RETENTION_DAYS, so the file
-// stays resolvable for a while after the archive entry is written. Files with no
-// DB row fall into two classes: still inside that window (they have a row, so
-// they are not here) and genuinely orphaned — rejected uploads that multer wrote
-// before business validation failed. Only the second class is safe to reclaim,
-// and the history/ mention check protects archive-referenced names as a fallback.
+// Every file still inside its retention window has an attachments row, so a file
+// with no row is either a rejected upload that multer wrote before business
+// validation failed, or a pre-migration image whose row was cascaded away while
+// the file stayed. history/ is no longer written, but the old logs still name the
+// second class; they stay protected until those logs are removed by hand.
 function pruneOrphanAttachments() {
   if (process.env.PRUNE_ORPHANS === '0') return;
   let archived;
@@ -325,7 +308,7 @@ function pruneOrphanAttachments() {
   const referenced = new Set(db.prepare('SELECT filename FROM attachments').all().map(r => r.filename));
   let removed = 0;
   let bytes = 0;
-  for (const [dir, label] of [[UPLOADS_DIR, 'uploads'], [FILES_DIR, 'files']]) {
+  for (const dir of [UPLOADS_DIR, FILES_DIR]) {
     for (const name of fs.readdirSync(dir)) {
       if (referenced.has(name) || archived.has(name)) continue;
       const filePath = path.join(dir, name);
@@ -411,8 +394,11 @@ function attachAttachments(messages) {
     };
     byMsg[row.message_id][row.kind === 'file' ? 'files' : 'images'].push(record);
   }
-  return messages.map(m => ({
+  return messages.map(({ starred_at, retain_from, ...m }) => ({
     ...m,
+    starred: starred_at != null,
+    expires_at: starred_at != null ? null
+      : new Date(new Date(retain_from || m.created_at).getTime() + RETENTION_DAYS * 86400000).toISOString(),
     images: (byMsg[m.id] || {}).images || [],
     files: (byMsg[m.id] || {}).files || [],
   }));
@@ -439,27 +425,33 @@ app.get('/api/messages', (req, res) => {
   const device = req.query.device || null;
 
   let messages;
-  if (since > 0) {
+  // Starred messages can be older than any 200-message window, so they are
+  // fetched as their own complete set.
+  if (req.query.starred === '1') {
+    messages = db.prepare(
+      `SELECT ${MSG_COLS} FROM messages WHERE starred_at IS NOT NULL ORDER BY id ASC`
+    ).all();
+  } else if (since > 0) {
     if (device) {
       const stmt = db.prepare(
-        'SELECT id, text, device_name, created_at FROM messages WHERE id > ? AND device_name = ? ORDER BY id ASC LIMIT 200'
+        `SELECT ${MSG_COLS} FROM messages WHERE id > ? AND device_name = ? ORDER BY id ASC LIMIT 200`
       );
       messages = stmt.all(since, device);
     } else {
       const stmt = db.prepare(
-        'SELECT id, text, device_name, created_at FROM messages WHERE id > ? ORDER BY id ASC LIMIT 200'
+        `SELECT ${MSG_COLS} FROM messages WHERE id > ? ORDER BY id ASC LIMIT 200`
       );
       messages = stmt.all(since);
     }
   } else {
     if (device) {
       const stmt = db.prepare(
-        'SELECT id, text, device_name, created_at FROM messages WHERE device_name = ? ORDER BY id DESC LIMIT 200'
+        `SELECT ${MSG_COLS} FROM messages WHERE device_name = ? ORDER BY id DESC LIMIT 200`
       );
       messages = stmt.all(device).reverse();
     } else {
       const stmt = db.prepare(
-        'SELECT id, text, device_name, created_at FROM messages ORDER BY id DESC LIMIT 200'
+        `SELECT ${MSG_COLS} FROM messages ORDER BY id DESC LIMIT 200`
       );
       messages = stmt.all().reverse();
     }
@@ -598,14 +590,64 @@ app.put('/api/messages/:id', (req, res) => {
   const stmt = db.prepare('UPDATE messages SET text = ? WHERE id = ?');
   stmt.run(text.trim(), id);
 
-  const updated = db.prepare('SELECT id, text, device_name, created_at FROM messages WHERE id = ?').get(id);
+  const updated = db.prepare(`SELECT ${MSG_COLS} FROM messages WHERE id = ?`).get(id);
   res.json(attachAttachments([updated])[0]);
+});
+
+const MAX_BATCH = 1000;
+const starStmt = db.prepare('UPDATE messages SET starred_at = COALESCE(starred_at, ?) WHERE id = ?');
+// Only an actual unstar restarts the clock; repeating it must not keep extending it.
+const unstarStmt = db.prepare('UPDATE messages SET retain_from = CASE WHEN starred_at IS NOT NULL THEN ? ELSE retain_from END, starred_at = NULL WHERE id = ?');
+// Returns the ids that exist, updated in one transaction.
+const setStarred = db.transaction((ids, starred) => {
+  const now = new Date().toISOString();
+  const stmt = starred ? starStmt : unstarStmt;
+  return ids.filter(id => stmt.run(now, id).changes > 0);
+});
+const loadMessages = ids => {
+  if (ids.length === 0) return [];
+  const rows = db.prepare(`SELECT ${MSG_COLS} FROM messages WHERE id IN (${ids.map(() => '?').join(',')}) ORDER BY id ASC`).all(...ids);
+  return attachAttachments(rows);
+};
+
+app.put('/api/messages/:id/star', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'invalid id' });
+  }
+  if (!req.body || typeof req.body.starred !== 'boolean') {
+    return res.status(400).json({ error: 'starred must be a boolean' });
+  }
+  if (setStarred([id], req.body.starred).length === 0) {
+    return res.status(404).json({ error: 'not found' });
+  }
+  res.json(loadMessages([id])[0]);
+});
+
+// Batch form for the selection bar. Ids that no longer exist are skipped, not an error:
+// another device may have deleted one of them since it was selected.
+app.put('/api/stars', (req, res) => {
+  const { ids, starred } = req.body || {};
+  if (typeof starred !== 'boolean') {
+    return res.status(400).json({ error: 'starred must be a boolean' });
+  }
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > MAX_BATCH || !ids.every(i => Number.isInteger(i) && i > 0)) {
+    return res.status(400).json({ error: `ids must be 1-${MAX_BATCH} positive integers` });
+  }
+  const done = setStarred([...new Set(ids)], starred);
+  res.json({ messages: loadMessages(done) });
 });
 
 app.delete('/api/messages/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     return res.status(400).json({ error: 'invalid id' });
+  }
+
+  // A swipe is easy to trigger by accident; a starred message has to be unstarred first.
+  const target = db.prepare('SELECT starred_at FROM messages WHERE id = ?').get(id);
+  if (target && target.starred_at != null) {
+    return res.status(409).json({ error: 'message is starred; unstar it first' });
   }
 
   // Schedule the attachments' removal before deleting the message, for the same
@@ -623,6 +665,27 @@ app.delete('/api/messages/:id', (req, res) => {
   }
 
   res.status(204).send();
+});
+
+// The page is usually opened as localhost on this PC, so only the server knows the
+// address a phone has to scan. Private ranges first; virtual adapters (WSL, VPN)
+// come later but stay listed in case they are the right one.
+app.get('/api/qr', async (req, res, next) => {
+  try {
+    const rank = ip => /^192\.168\./.test(ip) ? 0 : /^10\./.test(ip) ? 1 : /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ? 2 : 3;
+    const ips = Object.values(os.networkInterfaces()).flat()
+      .filter(a => a && a.family === 'IPv4' && !a.internal)
+      .map(a => a.address)
+      .sort((a, b) => rank(a) - rank(b));
+    const addresses = [];
+    for (const ip of ips) {
+      const url = `http://${ip}:${PORT}/`;
+      addresses.push({ url, svg: await QRCode.toString(url, { type: 'svg', margin: 1 }) });
+    }
+    res.json({ addresses });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Multer error handler

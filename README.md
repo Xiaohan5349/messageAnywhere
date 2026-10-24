@@ -13,10 +13,16 @@ A single Node.js server runs on your Windows PC. All devices on the same WiFi op
 - Attach up to 10 documents per message, any type, up to 50 MB each
 - Real-time sync across all open browsers (3-second polling)
 - Tap to copy any message to clipboard
-- Swipe left to delete
+- Swipe left to delete, with 5 seconds to undo
+- Tap ☆ on a message to keep it, its photos and its files forever; the Starred view has its own sections and search
+- On a wide desktop window, a right rail shows starred items, recent photos and files, and a QR code for phones
+- Starred messages cannot be deleted until they are unstarred
+- Select mode (⋯ → Select messages, or hold a message → Select) stars or unstars many at once
+- Downloads ask for confirmation first, so a stray tap never starts one
 - Custom device name with auto-detection (iPhone, Android, Mac, Windows PC)
-- Messages auto-expire after 7 days, archived to `history/YYYY-MM-DD.log`
+- Messages auto-expire after 7 days; each card shows the time left. Unstarring restarts the 7 days
 - Attachments stay on disk 30 days past their message's expiry, then are removed
+- "Open on phone" (⋯ menu) shows a QR code for this PC's network address
 - Auto-starts on Windows login via Scheduled Task
 
 ## Working with images
